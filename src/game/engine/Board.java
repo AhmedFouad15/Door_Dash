@@ -158,7 +158,7 @@ public class Board {
 		currentMonster.setPosition(roll + old_Position);
 
 		Cell cell = getCell(currentMonster.getPosition());
-		//cell.onLand(currentMonster, opponentMonster);
+		cell.onLand(currentMonster, opponentMonster);
 
 		if(currentMonster.getPosition() == opponentMonster.getPosition()){
 			currentMonster.setPosition(old_Position);

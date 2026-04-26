@@ -2,6 +2,7 @@ package game.engine.cells;
 
 import game.engine.Role;
 import game.engine.interfaces.CanisterModifier;
+import game.engine.monsters.Monster;
 
 public class DoorCell extends Cell implements CanisterModifier {
 	private Role role;

@@ -60,9 +60,14 @@ public abstract class Monster implements Comparable<Monster> {
 	}
 
 	public void setPosition(int position) {
-		this.position = position % Constants.BOARD_SIZE;
+		int wrappedPos = position % Constants.BOARD_SIZE;
+		if(wrappedPos < 0){
+			this.position = 0;
+		}
+		else this.position = wrappedPos;
 	}
-	
+
+
 	public boolean isFrozen() {
 		return frozen;
 	}
@@ -91,5 +96,31 @@ public abstract class Monster implements Comparable<Monster> {
 	public int compareTo(Monster other) {
 		return this.position - other.position;
 	}
+
+	public boolean isConfused(){
+		return this.getConfusionTurns()>0;
+	}
+
+	public void move (int distance){
+		this.setPosition(this.getPosition() + distance);
+	}
+
+	public void alterEnergy(int energy){
+		if (energy < 0 && isShielded() ){
+			this.setShielded(false);
+		}
+		else
+			this.setEnergy(energy + this.getEnergy());
+	}
+
+	public void decrementConfusion(){
+		if (this.getConfusionTurns()> 0){
+			this.setConfusionTurns(this.getConfusionTurns() -1);
+			if (this.getConfusionTurns()==0)
+				this.setRole(this.getOriginalRole());
+		}
+	}
+
+	public abstract void executePowerupEffect(Monster opponentMonster);
 
 }
