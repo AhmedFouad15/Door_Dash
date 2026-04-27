@@ -144,7 +144,7 @@ public class Board {
 		cards = temp;
 	}
 
-	static Card drawCard(){
+	public static Card drawCard(){
 		if(cards.size() == 0){
 			reloadCards();
 		}
