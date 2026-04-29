@@ -80,7 +80,7 @@ public class Board {
 		int conveyor_index = 0;
 		int DoorCell_index = 1;
 		int CardCell_index = 0;
-		int monsterCell_index = 0;
+		int index_1 = 0;
 
 
 
@@ -102,12 +102,14 @@ public class Board {
 				DoorCell_index+=2;
 			}
 			else if(cell instanceof CardCell){
+				//wrong
 				int ind =  Constants.CARD_CELL_INDICES[CardCell_index];
 				CardCell_index++;
 				setCell(ind, cell);
 			}
 			else if( cell instanceof MonsterCell) {
-				int ind = Constants.MONSTER_CELL_INDICES[monsterCell_index];
+				//wrong
+				int ind = Constants.MONSTER_CELL_INDICES[index_1];
 				setCell(ind, cell);
 
 				Monster stationedMonster = ((MonsterCell) cell).getCellMonster();
@@ -120,7 +122,7 @@ public class Board {
 					}
 				}
 
-				monsterCell_index++;
+				index_1++;
 			}
 
 		}
@@ -138,7 +140,7 @@ public class Board {
 		originalCards = new_one;
 	}
 
-	static void reloadCards(){
+	public static void reloadCards(){
 		ArrayList<Card> temp = new ArrayList<>(originalCards);
 		Collections.shuffle(temp);
 		cards = temp;
@@ -153,7 +155,7 @@ public class Board {
 		return card;
 	}
 
-	void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
+	public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
 		int old_Position = currentMonster.getPosition();
 		currentMonster.setPosition(roll + old_Position);
 

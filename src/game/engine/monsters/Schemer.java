@@ -11,38 +11,36 @@ public class Schemer extends Monster {
 	}
 
 	private int stealEnergyFrom(Monster target) {
-		int targetEnergy = target.getEnergy();
-		int amountToSteal;
-		if (targetEnergy < Constants.SCHEMER_STEAL) {
-			amountToSteal = targetEnergy;
-		} else {
-			amountToSteal = Constants.SCHEMER_STEAL;
+
+		if (target.isShielded()) {
+			target.setShielded(false);   // consume shield
+			return 0;                   // no energy stolen
 		}
+
+		int targetEnergy = target.getEnergy();
+		int amountToSteal = Math.min(targetEnergy, Constants.SCHEMER_STEAL);
+
 		target.setEnergy(targetEnergy - amountToSteal);
+
 		return amountToSteal;
 	}
+
 	@Override
 	public void setEnergy(int energy) {
-		if (energy != this.getEnergy()) {
-			super.setEnergy(energy + Constants.SCHEMER_STEAL);
-		} else {
-			super.setEnergy(energy);
-		}
+		super.setEnergy(energy + Constants.SCHEMER_STEAL);
 	}
 	@Override
 	public void executePowerupEffect(Monster opponentMonster) {
 		int totalStolen = 0;
 
-		//  Steal from the main opponent
 		totalStolen += stealEnergyFrom(opponentMonster);
 
-		//  Steal from everyone else on the board
-		//and we have the access to them through the Board's list of stationed monsters
 		for (Monster stationed : Board.getStationedMonsters()) {
-			totalStolen += stealEnergyFrom(stationed);
+			if (stationed != opponentMonster) {
+				totalStolen += stealEnergyFrom(stationed);
+			}
 		}
 
-		//  Finally, add all the stolen energy from all the monsters to the schemer
 		this.setEnergy(this.getEnergy() + totalStolen);
 	}
 
