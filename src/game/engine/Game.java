@@ -1,6 +1,8 @@
 package game.engine;
 
 import java.io.IOException;
+
+import game.engine.cards.Card;
 import game.engine.exceptions.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +34,8 @@ public class Game {
 		allMonsters.remove(opponent);
 
 		setStationedMonsters(allMonsters);
+
+		ArrayList<Card> x = DataLoader.readCards();
 
 		board.initializeBoard(DataLoader.readCells());
 	}

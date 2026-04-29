@@ -8,6 +8,7 @@ import game.engine.cells.*;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.monsters.Monster;
 
+import static game.engine.Constants.MONSTER_CELL_INDICES;
 import static game.engine.dataloader.DataLoader.*;
 
 public class Board {
@@ -71,15 +72,17 @@ public class Board {
 	}
 
 	public void initializeBoard(ArrayList<Cell> specialCells){
-		for (int i = 0; i < Constants.BOARD_SIZE; i++) {
-			if (i % 2 == 0) {
-				setCell(i, new Cell("Normal Cell"));
-			}
-		}
 		int Contamination_index = 0;
 		int conveyor_index = 0;
 		int DoorCell_index = 1;
 		int CardCell_index = 0;
+
+		int inde = 0;
+
+		for(int i = 0; i < stationedMonsters.size(); i++){
+			setCell(MONSTER_CELL_INDICES[inde], new MonsterCell(stationedMonsters.get(i).getName(), stationedMonsters.get(i)));
+			inde++;
+		}
 
 
 		for(int i = 0; i < specialCells.size(); i++){
@@ -100,12 +103,16 @@ public class Board {
 				DoorCell_index+=2;
 			}
 			else if(cell instanceof CardCell){
-				//wrong
 				int ind =  Constants.CARD_CELL_INDICES[CardCell_index];
 				CardCell_index++;
 				setCell(ind, cell);
 			}
 
+		}
+		for (int i = 0; i < Constants.BOARD_SIZE; i++) {
+			if (i % 2 == 0 && getCell(i) == null) {
+				setCell(i, new Cell("Normal Cell"));
+			}
 		}
 	}
 
