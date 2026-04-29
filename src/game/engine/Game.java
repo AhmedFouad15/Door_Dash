@@ -6,8 +6,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import game.engine.dataloader.DataLoader;
 import game.engine.monsters.*;
-import game.engine.*;
+import game.engine.Board.*;
 import game.engine.cells.*;
+
+import static game.engine.Board.setStationedMonsters;
+import static game.engine.dataloader.DataLoader.readCells;
 
 public class Game {
 	private Board board;
@@ -24,6 +27,13 @@ public class Game {
 		this.player = selectRandomMonsterByRole(playerRole);
 		this.opponent = selectRandomMonsterByRole(playerRole == Role.SCARER ? Role.LAUGHER : Role.SCARER);
 		this.current = player;
+
+		allMonsters.remove(player);
+		allMonsters.remove(opponent);
+
+		setStationedMonsters(allMonsters);
+
+		board.initializeBoard(DataLoader.readCells());
 	}
 	
 	public Board getBoard() {

@@ -80,8 +80,6 @@ public class Board {
 		int conveyor_index = 0;
 		int DoorCell_index = 1;
 		int CardCell_index = 0;
-		int index_1 = 0;
-
 
 
 		for(int i = 0; i < specialCells.size(); i++){
@@ -107,23 +105,6 @@ public class Board {
 				CardCell_index++;
 				setCell(ind, cell);
 			}
-			else if( cell instanceof MonsterCell) {
-				//wrong
-				int ind = Constants.MONSTER_CELL_INDICES[index_1];
-				setCell(ind, cell);
-
-				Monster stationedMonster = ((MonsterCell) cell).getCellMonster();
-				if (stationedMonster != null) {
-					stationedMonster.setPosition(ind);
-
-					// If the Game class hasn't already populated the stationedMonsters list, add it here:
-					if (!stationedMonsters.contains(stationedMonster)) {
-						stationedMonsters.add(stationedMonster);
-					}
-				}
-
-				index_1++;
-			}
 
 		}
 	}
@@ -147,11 +128,11 @@ public class Board {
 	}
 
 	public static Card drawCard(){
-		if(cards.size() == 0){
+		if(cards.isEmpty()){
 			reloadCards();
 		}
 		Card card = cards.get(0);
-		cards.remove(0);
+		cards.removeFirst();
 		return card;
 	}
 
@@ -197,5 +178,4 @@ public class Board {
 			}
 		}
 	}
-
 }
