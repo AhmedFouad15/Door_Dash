@@ -144,7 +144,7 @@ public class Board {
 			reloadCards();
 		}
 		Card card = cards.get(0);
-		cards.removeFirst();
+		cards.remove(0);
 		return card;
 	}
 
@@ -166,9 +166,6 @@ public class Board {
 
 		if (currentMonster.isConfused()) {
 			currentMonster.decrementConfusion();
-		}
-		if (opponentMonster.isConfused()) {
-			opponentMonster.decrementConfusion();
 		}
 
 		updateMonsterPositions(currentMonster, opponentMonster);

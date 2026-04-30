@@ -13,6 +13,7 @@ public class MonsterCell extends Cell {
 	public Monster getCellMonster() {
 		return cellMonster;
 	}
+
 	@Override
 	public void onLand(Monster landingMonster, Monster opponentMonster) {
 		super.onLand(landingMonster, opponentMonster);
@@ -20,8 +21,18 @@ public class MonsterCell extends Cell {
 			landingMonster.executePowerupEffect(opponentMonster);
 		} else {
 			if (landingMonster.getEnergy() > cellMonster.getEnergy()) {
-				int temp = landingMonster.getEnergy();
-				landingMonster.setEnergy(cellMonster.getEnergy());
-				cellMonster.setEnergy(temp);
+				int landingInitial = landingMonster.getEnergy();
+				int cellInitial = cellMonster.getEnergy();
+
+				// Calculate the penalty (this will be a negative number)
+				int penalty = cellInitial - landingInitial;
+
+				// Apply the penalty using alterEnergy so the shield can block it
+				landingMonster.alterEnergy(penalty);
+
+				// The cell monster ALWAYS gets the high energy
+				cellMonster.setEnergy(landingInitial);
 			}
-		}}}
+		}
+	}
+}

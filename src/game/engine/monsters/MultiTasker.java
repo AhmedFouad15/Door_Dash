@@ -5,47 +5,33 @@ import game.engine.Role;
 
 public class MultiTasker extends Monster {
 	private int normalSpeedTurns;
-	
+
 	public MultiTasker(String name, String description, Role role, int energy) {
 		super(name, description, role, energy);
 		this.normalSpeedTurns = 0;
 	}
 
-	public int getNormalSpeedTurns() {
-		return normalSpeedTurns;
-	}
-
-	public void setNormalSpeedTurns(int normalSpeedTurns) {
-		this.normalSpeedTurns = normalSpeedTurns;
-	}
+	public int getNormalSpeedTurns() { return normalSpeedTurns; }
+	public void setNormalSpeedTurns(int normalSpeedTurns) { this.normalSpeedTurns = normalSpeedTurns; }
 
 	@Override
-	public void move (int distance){
-		if (this.normalSpeedTurns >0){
+	public void move(int distance) {
+		if (this.normalSpeedTurns > 0) {
 			super.move(distance);
 			normalSpeedTurns--;
+		} else {
+			super.move(distance / 2);
 		}
-		else
-			super.move(distance /2);
 	}
+
 	@Override
 	public void setEnergy(int energy) {
-		int currentEnergy = this.getEnergy();
-		int difference = energy - currentEnergy;
-		if (difference > 0)
-			super.setEnergy(energy + Constants.MULTITASKER_BONUS);
-		else if (difference < 0)
-			super.setEnergy(energy - Constants.MULTITASKER_BONUS);
-		else
-			super.setEnergy(energy);
-		//if this part here have any kind of error then I should just add the
-		// bonus instead of doing the if condition
+		// Blindly add the +200 bonus to whatever the new energy target is!
+		super.setEnergy(energy + Constants.MULTITASKER_BONUS);
 	}
 
 	@Override
 	public void executePowerupEffect(Monster opponentMonster) {
 		this.setNormalSpeedTurns(2);
 	}
-
-
 }

@@ -82,7 +82,7 @@ public class Game {
 		return (int)(Math.random()*6) + 1;
 	}
 
-	void usePowerup() throws OutOfEnergyException{
+	public void usePowerup() throws OutOfEnergyException{
 		if (current.getEnergy()<Constants.POWERUP_COST) {
 			throw new OutOfEnergyException();
 		}
@@ -91,7 +91,7 @@ public class Game {
 		current.setEnergy(current.getEnergy() - Constants.POWERUP_COST);
 	}
 
-	void playTurn() throws InvalidMoveException{
+	public void playTurn() throws InvalidMoveException{
 		if (current.isFrozen()) { // frozen is true
 			current.setFrozen(false);
 			switchTurn();

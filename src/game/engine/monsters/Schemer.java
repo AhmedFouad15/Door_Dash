@@ -27,9 +27,11 @@ public class Schemer extends Monster{
 		int total = stealEnergyFrom(opponentMonster);
 
 		ArrayList<Monster> stationed = Board.getStationedMonsters();
-		for (int i =0; i<stationed.size(); i++) {
-			Monster m = stationed.get(i);
-			total += stealEnergyFrom(m);
+		if (stationed != null) {
+			for (int i = 0; i < stationed.size(); i++) {
+				Monster m = stationed.get(i);
+				total += stealEnergyFrom(m);
+			}
 		}
 
 		setEnergy(getEnergy() + total);
@@ -37,13 +39,7 @@ public class Schemer extends Monster{
 
 	@Override
 	public void setEnergy(int energy) {
-		int currentEnergy = this.getEnergy();
-		int difference = energy - currentEnergy;
-
-		if (difference == 0) {
-			return;
-		}
-
+		// Blindly add the +10 bonus to whatever the new energy target is!
 		super.setEnergy(energy + Constants.SCHEMER_STEAL);
 	}
 
