@@ -30,14 +30,28 @@ public class Game {
 		this.opponent = selectRandomMonsterByRole(playerRole == Role.SCARER ? Role.LAUGHER : Role.SCARER);
 		this.current = player;
 
+		ArrayList<Cell> specialCells = DataLoader.readCells();
+
 		allMonsters.remove(player);
 		allMonsters.remove(opponent);
 
 		setStationedMonsters(allMonsters);
 
+		for(int i = 0; i < allMonsters.size(); i ++){
+			Monster  m = allMonsters.get(i);
+			MonsterCell cell = new MonsterCell(m.getName(), m);
+			specialCells.add(cell);
+		}
+
 		ArrayList<Card> x = DataLoader.readCards();
 
-		board.initializeBoard(DataLoader.readCells());
+		for(int i = 0;  i < x.size(); i ++){
+			Card c = x.get(i);
+			CardCell a = new CardCell(c.getName());
+			specialCells.add(a);
+		}
+
+		board.initializeBoard(specialCells);
 	}
 	
 	public Board getBoard() {

@@ -76,6 +76,7 @@ public class Board {
 		int conveyor_index = 0;
 		int DoorCell_index = 1;
 		int CardCell_index = 0;
+		int monsterCell_index = 0;
 
 		int inde = 0;
 
@@ -86,29 +87,40 @@ public class Board {
 
 
 		for(int i = 0; i < specialCells.size(); i++){
+
 			Cell cell = specialCells.get(i);
 
 			if(cell instanceof ContaminationSock && Contamination_index < Constants.SOCK_CELL_INDICES.length){
+				ContaminationSock x = (ContaminationSock) cell;
 				int ind = Constants.SOCK_CELL_INDICES[Contamination_index];
-				setCell(ind, cell);
+				setCell(ind, x);
 				Contamination_index++;
 			}
 			else if(cell instanceof ConveyorBelt && conveyor_index < Constants.CONVEYOR_CELL_INDICES.length) {
+				ConveyorBelt x = (ConveyorBelt) cell;
 				int ind = Constants.CONVEYOR_CELL_INDICES[conveyor_index];
-				setCell(ind, cell);
+				setCell(ind, x);
 				conveyor_index++;
 			}
 			else if(cell instanceof DoorCell){
-				setCell(DoorCell_index, cell);
+				DoorCell x = (DoorCell) cell;
+				setCell(DoorCell_index, x);
 				DoorCell_index+=2;
 			}
 			else if(cell instanceof CardCell){
+				CardCell x = (CardCell) cell;
 				int ind =  Constants.CARD_CELL_INDICES[CardCell_index];
 				CardCell_index++;
-				setCell(ind, cell);
+				setCell(ind, x);
 			}
-
+			else if(cell instanceof MonsterCell){
+				MonsterCell x = (MonsterCell) cell;
+				int ind =  Constants.MONSTER_CELL_INDICES[monsterCell_index];
+				monsterCell_index++;
+				setCell(ind, x);
+			}
 		}
+
 		for (int i = 0; i < Constants.BOARD_SIZE; i++) {
 			if (i % 2 == 0 && getCell(i) == null) {
 				setCell(i, new Cell("Normal Cell"));
