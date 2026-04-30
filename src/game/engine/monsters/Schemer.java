@@ -35,7 +35,15 @@ public class Schemer extends Monster{
 		setEnergy(getEnergy() + total);
 	}
 
+	@Override
 	public void setEnergy(int energy) {
+		int currentEnergy = this.getEnergy();
+		int difference = energy - currentEnergy;
+
+		if (difference == 0) {
+			return;
+		}
+
 		super.setEnergy(energy + Constants.SCHEMER_STEAL);
 	}
 

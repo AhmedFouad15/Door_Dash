@@ -75,14 +75,19 @@ public class Board {
 		int Contamination_index = 0;
 		int conveyor_index = 0;
 		int DoorCell_index = 1;
-		int CardCell_index = 0;
-		int monsterCell_index = 0;
 
-		int inde = 0;
 
-		for(int i = 0; i < stationedMonsters.size(); i++){
-			setCell(MONSTER_CELL_INDICES[inde], new MonsterCell(stationedMonsters.get(i).getName(), stationedMonsters.get(i)));
-			inde++;
+		for (int i = 0; i < stationedMonsters.size(); i++) {
+			Monster currentMonster = stationedMonsters.get(i);
+			int targetIndex = Constants.MONSTER_CELL_INDICES[i];
+
+			currentMonster.setPosition(targetIndex);
+
+			setCell(targetIndex, new MonsterCell(currentMonster.getName(), currentMonster));
+		}
+
+		for (int i = 0; i < Constants.CARD_CELL_INDICES.length; i++) {
+			setCell(Constants.CARD_CELL_INDICES[i], new CardCell("Card Cell"));
 		}
 
 
@@ -107,22 +112,10 @@ public class Board {
 				setCell(DoorCell_index, x);
 				DoorCell_index+=2;
 			}
-			else if(cell instanceof CardCell){
-				CardCell x = (CardCell) cell;
-				int ind =  Constants.CARD_CELL_INDICES[CardCell_index];
-				CardCell_index++;
-				setCell(ind, x);
-			}
-			else if(cell instanceof MonsterCell){
-				MonsterCell x = (MonsterCell) cell;
-				int ind =  Constants.MONSTER_CELL_INDICES[monsterCell_index];
-				monsterCell_index++;
-				setCell(ind, x);
-			}
 		}
 
 		for (int i = 0; i < Constants.BOARD_SIZE; i++) {
-			if (i % 2 == 0 && getCell(i) == null) {
+			if (getCell(i) == null) {
 				setCell(i, new Cell("Normal Cell"));
 			}
 		}
@@ -157,17 +150,24 @@ public class Board {
 
 	public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
 		int old_Position = currentMonster.getPosition();
-		currentMonster.setPosition(roll + old_Position);
+
+		int new_Position = (old_Position + roll) % Constants.BOARD_SIZE;
+		currentMonster.setPosition(new_Position);
 
 		Cell cell = getCell(currentMonster.getPosition());
-		cell.onLand(currentMonster, opponentMonster);
+		if (cell != null) {
+			cell.onLand(currentMonster, opponentMonster);
+		}
 
 		if(currentMonster.getPosition() == opponentMonster.getPosition()){
 			currentMonster.setPosition(old_Position);
 			throw new InvalidMoveException();
 		}
-		if (currentMonster.isConfused() || opponentMonster.isConfused()) {
+
+		if (currentMonster.isConfused()) {
 			currentMonster.decrementConfusion();
+		}
+		if (opponentMonster.isConfused()) {
 			opponentMonster.decrementConfusion();
 		}
 

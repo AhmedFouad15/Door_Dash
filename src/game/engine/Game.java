@@ -20,12 +20,11 @@ public class Game {
 	private Monster player;
 	private Monster opponent;
 	private Monster current;
-	
+
 	public Game(Role playerRole) throws IOException {
 		this.board = new Board(DataLoader.readCards());
-		
 		this.allMonsters = DataLoader.readMonsters();
-		
+
 		this.player = selectRandomMonsterByRole(playerRole);
 		this.opponent = selectRandomMonsterByRole(playerRole == Role.SCARER ? Role.LAUGHER : Role.SCARER);
 		this.current = player;
@@ -35,21 +34,7 @@ public class Game {
 		allMonsters.remove(player);
 		allMonsters.remove(opponent);
 
-		setStationedMonsters(allMonsters);
-
-		for(int i = 0; i < allMonsters.size(); i ++){
-			Monster  m = allMonsters.get(i);
-			MonsterCell cell = new MonsterCell(m.getName(), m);
-			specialCells.add(cell);
-		}
-
-		ArrayList<Card> x = DataLoader.readCards();
-
-		for(int i = 0;  i < x.size(); i ++){
-			Card c = x.get(i);
-			CardCell a = new CardCell(c.getName());
-			specialCells.add(a);
-		}
+		board.setStationedMonsters(allMonsters);
 
 		board.initializeBoard(specialCells);
 	}
