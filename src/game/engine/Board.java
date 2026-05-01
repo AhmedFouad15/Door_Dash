@@ -166,6 +166,7 @@ public class Board {
 
 		if (currentMonster.isConfused()) {
 			currentMonster.decrementConfusion();
+			opponentMonster.decrementConfusion();
 		}
 
 		updateMonsterPositions(currentMonster, opponentMonster);
