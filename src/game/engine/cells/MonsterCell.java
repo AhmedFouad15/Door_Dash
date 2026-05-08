@@ -15,24 +15,26 @@ public class MonsterCell extends Cell {
 	}
 
 	@Override
-	public void onLand(Monster landingMonster, Monster opponentMonster) {
+    public void onLand(Monster landingMonster, Monster opponentMonster) {
 		super.onLand(landingMonster, opponentMonster);
-		if (landingMonster.getRole() == cellMonster.getRole()) {
-			landingMonster.executePowerupEffect(opponentMonster);
-		} else {
-			if (landingMonster.getEnergy() > cellMonster.getEnergy()) {
-				int landingInitial = landingMonster.getEnergy();
-				int cellInitial = cellMonster.getEnergy();
+		
+		// Same role: Use landing monster's powerup!
+        if (cellMonster.getRole() == landingMonster.getRole()) {
+        	System.out.println(landingMonster.getName() + " encountered ally " + cellMonster.getName() + "!");
+        	landingMonster.executePowerupEffect(opponentMonster);
+        }
+        
+        // Different role: Swap if landing monster has more energy
+        else {
+        	if (landingMonster.getEnergy() > cellMonster.getEnergy()) {
+        	    int landingEnergy = landingMonster.getEnergy();
+        	    int cellEnergy = cellMonster.getEnergy();
+        	    int diff = landingEnergy - cellEnergy;
 
-				// Calculate the penalty (this will be a negative number)
-				int penalty = cellInitial - landingInitial;
-
-				// Apply the penalty using alterEnergy so the shield can block it
-				landingMonster.alterEnergy(penalty);
-
-				// The cell monster ALWAYS gets the high energy
-				cellMonster.setEnergy(landingInitial);
-			}
-		}
-	}
+        	    landingMonster.alterEnergy(-diff); // shield will block this if active
+        	    cellMonster.alterEnergy(diff);     // cell monster always gets the gain
+        	    System.out.println("Energy swapped between " + landingMonster.getName() + " and " + cellMonster.getName());
+        	}
+        }
+    }
 }

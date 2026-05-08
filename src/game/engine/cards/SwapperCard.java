@@ -1,6 +1,6 @@
 package game.engine.cards;
 
-import game.engine.monsters.*;
+import game.engine.monsters.Monster;
 
 public class SwapperCard extends Card {
 
@@ -8,15 +8,14 @@ public class SwapperCard extends Card {
 		super(name, description, rarity, true);
 	}
 
-	public void performAction(Monster player, Monster opponent){
-		int PlayerPosition = player.getPosition();
-		int OpponentPosition = opponent.getPosition();
-
-		if (PlayerPosition < OpponentPosition ) {
-			int temp = PlayerPosition;
-			player.setPosition(OpponentPosition);
-			opponent.setPosition(temp);
+	@Override
+	public void performAction(Monster player, Monster opponent) {
+		if (player.compareTo(opponent) < 0) {
+			int playerPosition = player.getPosition();
+			player.setPosition(opponent.getPosition());
+			opponent.setPosition(playerPosition);
+			System.out.println("Swapped positions! " + player.getName() + " and " + opponent.getName());
 		}
 	}
-	
+
 }

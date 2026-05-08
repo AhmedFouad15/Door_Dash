@@ -1,18 +1,14 @@
 package game.engine;
 
 import java.io.IOException;
-
-import game.engine.cards.Card;
-import game.engine.exceptions.*;
 import java.util.ArrayList;
 import java.util.Collections;
-import game.engine.dataloader.DataLoader;
-import game.engine.monsters.*;
-import game.engine.Board.*;
-import game.engine.cells.*;
+import java.util.Random;
 
-import static game.engine.Board.setStationedMonsters;
-import static game.engine.dataloader.DataLoader.readCells;
+import game.engine.dataloader.DataLoader;
+import game.engine.exceptions.InvalidMoveException;
+import game.engine.exceptions.OutOfEnergyException;
+import game.engine.monsters.*;
 
 public class Game {
 	private Board board;
@@ -20,23 +16,21 @@ public class Game {
 	private Monster player;
 	private Monster opponent;
 	private Monster current;
-
+	
 	public Game(Role playerRole) throws IOException {
 		this.board = new Board(DataLoader.readCards());
+		
 		this.allMonsters = DataLoader.readMonsters();
-
+		
 		this.player = selectRandomMonsterByRole(playerRole);
 		this.opponent = selectRandomMonsterByRole(playerRole == Role.SCARER ? Role.LAUGHER : Role.SCARER);
 		this.current = player;
-
-		ArrayList<Cell> specialCells = DataLoader.readCells();
-
+		
 		allMonsters.remove(player);
 		allMonsters.remove(opponent);
-
-		board.setStationedMonsters(allMonsters);
-
-		board.initializeBoard(specialCells);
+		
+		Board.setStationedMonsters(allMonsters);
+		board.initializeBoard(DataLoader.readCells());
 	}
 	
 	public Board getBoard() {
@@ -70,60 +64,56 @@ public class Game {
 	    		.findFirst()
 	    		.orElse(null);
 	}
-
+	
 	private Monster getCurrentOpponent() {
-		if (current == player)
-			return opponent;
-		else
-			return player;
+		return current == player ? opponent : player;
 	}
 
 	private int rollDice() {
-		return (int)(Math.random()*6) + 1;
+		Random rand = new Random();
+		return rand.nextInt(6) + 1;
 	}
-
-	public void usePowerup() throws OutOfEnergyException{
-		if (current.getEnergy()<Constants.POWERUP_COST) {
-			throw new OutOfEnergyException();
-		}
-		Monster opponent = getCurrentOpponent();
-		current.executePowerupEffect(opponent);
+	
+	public void usePowerup() throws OutOfEnergyException {
+		if (current.getEnergy() < Constants.POWERUP_COST)
+			throw new OutOfEnergyException("Not enough energy to use powerup");
+		
+		current.executePowerupEffect(getCurrentOpponent());
 		current.setEnergy(current.getEnergy() - Constants.POWERUP_COST);
 	}
-
-	public void playTurn() throws InvalidMoveException{
-		if (current.isFrozen()) { // frozen is true
+	
+	public void playTurn() throws InvalidMoveException {
+		if (current.isFrozen()) {
+			System.out.println(current.getName() + " is frozen! Turn skipped.");
 			current.setFrozen(false);
 			switchTurn();
 			return;
 		}
+		
 		int roll = rollDice();
-		Monster opponent = getCurrentOpponent();
-		board.moveMonster(current, roll, opponent);
+		
+		board.moveMonster(current, roll, getCurrentOpponent());
+		
 		switchTurn();
 	}
-
+	
 	private void switchTurn() {
-		if (current == player)
-			current = opponent;
-		else
-			current = player;
+		this.setCurrent(getCurrentOpponent());
 	}
-
+	
 	private boolean checkWinCondition(Monster monster) {
-		if(monster.getPosition()==Constants.WINNING_POSITION && monster.getEnergy()>=Constants.WINNING_ENERGY)
-			return true;
-		return false;
+		return monster.getPosition() == Constants.WINNING_POSITION && 
+		       monster.getEnergy() >= Constants.WINNING_ENERGY;
 	}
-
+	
 	public Monster getWinner() {
-		if (checkWinCondition(player))
+		if (checkWinCondition(player)) 
 			return player;
-
-		if (checkWinCondition(opponent))
+		
+		if (checkWinCondition(opponent)) 
 			return opponent;
-
+		
 		return null;
 	}
-
+	
 }

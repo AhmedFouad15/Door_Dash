@@ -1,46 +1,38 @@
 package game.engine.monsters;
 
-import java.util.ArrayList;
-
 import game.engine.Board;
 import game.engine.Constants;
 import game.engine.Role;
 
-public class Schemer extends Monster{
-	public Schemer(String name, String description, Role role, int energy){
+public class Schemer extends Monster {
+	
+	public Schemer(String name, String description, Role role, int energy) {
 		super(name, description, role, energy);
 	}
-
-//new
-
-	private int stealEnergyFrom(Monster target) {
-		int value;
-		if (target.getEnergy() < Constants.SCHEMER_STEAL)
-			value = target.getEnergy();
-		else
-			value = Constants.SCHEMER_STEAL;
-		target.setEnergy(target.getEnergy() - value);
-		return value;
-	}
-
-	public void executePowerupEffect(Monster opponentMonster) {
-		int total = stealEnergyFrom(opponentMonster);
-
-		ArrayList<Monster> stationed = Board.getStationedMonsters();
-		if (stationed != null) {
-			for (int i = 0; i < stationed.size(); i++) {
-				Monster m = stationed.get(i);
-				total += stealEnergyFrom(m);
-			}
-		}
-
-		setEnergy(getEnergy() + total);
+	
+	@Override
+	public void setEnergy(int energy) {
+		super.setEnergy(energy + Constants.SCHEMER_STEAL);
 	}
 
 	@Override
-	public void setEnergy(int energy) {
-		// Blindly add the +10 bonus to whatever the new energy target is!
-		super.setEnergy(energy + Constants.SCHEMER_STEAL);
+	public void executePowerupEffect(Monster opponentMonster) {
+	    System.out.println(getName() + " uses Chain Attack!");
+	    int totalStolen = stealEnergyFrom(opponentMonster);
+
+	    for (Monster target : Board.getStationedMonsters()) {
+	        totalStolen += stealEnergyFrom(target);
+	        System.out.println("  -> Stole from " + target.getName());
+	    }
+
+	    this.setEnergy(this.getEnergy() + totalStolen);
+	    System.out.println("Total stolen: " + totalStolen + " energy!");
+	}
+	
+	private int stealEnergyFrom(Monster target) {
+	    int stolen = Math.min(Constants.SCHEMER_STEAL, target.getEnergy());
+	    target.setEnergy(target.getEnergy() - stolen);
+	    return stolen;
 	}
 
 }

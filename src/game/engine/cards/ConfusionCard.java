@@ -1,7 +1,7 @@
 package game.engine.cards;
 
 import game.engine.Role;
-import game.engine.monsters.*;
+import game.engine.monsters.Monster;
 
 public class ConfusionCard extends Card {
 	private int duration;
@@ -15,15 +15,13 @@ public class ConfusionCard extends Card {
 		return duration;
 	}
 
-	//monsters temporarily switch their roles, they switch turns for "duration" times
 	@Override
 	public void performAction(Monster player, Monster opponent) {
-		Role temp = player.getRole();
-		player.setRole(opponent.getRole());
-		opponent.setRole(temp);
-
 		player.setConfusionTurns(this.getDuration());
 		opponent.setConfusionTurns(this.getDuration());
+		Role playerRole = player.getRole();
+		player.setRole(opponent.getRole());
+		opponent.setRole(playerRole);
 	}
-
+	
 }

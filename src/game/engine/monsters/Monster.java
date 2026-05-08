@@ -60,14 +60,9 @@ public abstract class Monster implements Comparable<Monster> {
 	}
 
 	public void setPosition(int position) {
-		int wrappedPos = position % Constants.BOARD_SIZE;
-		if(wrappedPos < 0){
-			this.position = (position % Constants.BOARD_SIZE + Constants.BOARD_SIZE) % Constants.BOARD_SIZE;
-		}
-		else this.position = wrappedPos;
+		this.position = position % Constants.BOARD_SIZE;
 	}
-
-
+	
 	public boolean isFrozen() {
 		return frozen;
 	}
@@ -92,35 +87,38 @@ public abstract class Monster implements Comparable<Monster> {
 		this.confusionTurns = confusionTurns;
 	}
 
+	public abstract void executePowerupEffect(Monster opponentMonster);
+	
+	public boolean isConfused() {
+		return confusionTurns > 0;
+	}
+	
+	public void move(int distance) {
+		this.setPosition(this.getPosition() + distance);
+	}
+	
+	public final void alterEnergy(int energy) {
+		if (shielded && energy < 0) {
+			System.out.println(name + "'s shield blocked " + (-energy) + " damage!");
+			shielded = false; // Shield breaks after one use
+		}
+		
+		else 
+			this.setEnergy(this.getEnergy() + energy);	
+	}
+	
+	public void decrementConfusion() {
+		if (isConfused()) {
+			this.setConfusionTurns(this.getConfusionTurns() - 1);
+			
+			if(!isConfused())
+				this.setRole(originalRole);
+		}
+	}
+
 	@Override
 	public int compareTo(Monster other) {
 		return this.position - other.position;
 	}
-
-	public boolean isConfused(){
-		return this.getConfusionTurns()>0;
-	}
-
-	public void move (int distance){
-		this.setPosition(this.getPosition() + distance);
-	}
-
-	public final void alterEnergy(int energy){
-		if (energy < 0 && this.isShielded() ){
-			this.setShielded(false);
-		}
-		else
-			this.setEnergy(energy + this.getEnergy());
-	}
-
-	public void decrementConfusion(){
-		if (this.getConfusionTurns()> 0){
-			this.setConfusionTurns(this.getConfusionTurns() -1);
-			if (this.getConfusionTurns()==0)
-				this.setRole(this.getOriginalRole());
-		}
-	}
-
-	public abstract void executePowerupEffect(Monster opponentMonster);
 
 }
