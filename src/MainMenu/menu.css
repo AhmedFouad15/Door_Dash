@@ -66,3 +66,12 @@
     -fx-text-fill: #add8e6; /* Blue text */
     -fx-effect: dropshadow(gaussian, #1e90ff, 15, 0.6, 0, 0); /* Blue glow */
 }
+
+/* Force the UI layers to be transparent so we can see through them */
+.vbox, .pane {
+    -fx-background-color: transparent !important;
+}
+
+.stack-pane {
+    -fx-background-color: transparent !important;
+}

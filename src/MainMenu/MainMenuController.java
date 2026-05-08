@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.animation.ScaleTransition;
@@ -32,8 +33,8 @@ import java.net.URL;
 
 public class MainMenuController {
 
-    @FXML private StackPane rootPane; // Grabbed from MyController
-    @FXML private ImageView bgImage;  // This handles both resizing AND animation now
+    @FXML private StackPane rootPane;
+    @FXML private ImageView bgImage;
     @FXML private Button btnStart;
     @FXML private Button btnInstructions;
     @FXML private Button btnExit;
@@ -47,27 +48,28 @@ public class MainMenuController {
 
     @FXML
     public void initialize() {
-        // --- 1. DYNAMIC RESIZE (From MyController) ---
-        // Binds the background image size to the window size
+
+
+
+        bgImage.setPreserveRatio(false);
         bgImage.fitWidthProperty().bind(rootPane.widthProperty());
         bgImage.fitHeightProperty().bind(rootPane.heightProperty());
 
-        // --- 2. BUTTON ACTIONS ---
+        // 2. THE FAILSAFE: Wait for the UI to exist, then spawn
+        Platform.runLater(() -> {
+            createParticles();
+        });
+
+        // 3. BUTTONS (Clean Navigation via SceneManager)
         btnExit.setOnAction(e -> Platform.exit());
 
         btnStart.setOnAction(e -> {
-            if (clickSound != null) clickSound.play();
-            if (backgroundMusicPlayer != null) backgroundMusicPlayer.stop();
-
-            // The SceneManager already handles the Fade Out and the Fade In!
+            stopAudio();
             SceneManager.switchScene("Game.fxml");
         });
 
         btnInstructions.setOnAction(e -> {
-            if (clickSound != null) clickSound.play();
-
-            if (backgroundMusicPlayer != null) backgroundMusicPlayer.stop();
-            // Keep music playing for instructions if you want, or stop it here
+            stopAudio();
             SceneManager.switchScene("Instructions.fxml");
         });
 
@@ -94,6 +96,21 @@ public class MainMenuController {
         bgZoom.play();
 
         try {
+            // Adding the leading slash tells Java to look from the root of the project
+            String imagePath = "/MainMenu/assets/images/background.jpg";
+            URL res = getClass().getResource(imagePath);
+
+            if (res != null) {
+                bgImage.setImage(new Image(res.toExternalForm()));
+                System.out.println("Background loaded from: " + imagePath);
+            } else {
+                System.out.println("CRITICAL: Image file not found at " + imagePath);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
             // Load background music (loops forever)
             URL musicUrl = getClass().getResource("assets/audio/background2.mp3");
             Media bgMedia = new Media(musicUrl.toExternalForm());
@@ -114,6 +131,11 @@ public class MainMenuController {
         } catch (Exception e) {
             System.out.println("Could not load audio files! Check the folder/names.");
         }
+    }
+
+    private void stopAudio() {
+        if (clickSound != null) clickSound.play();
+        if (backgroundMusicPlayer != null) backgroundMusicPlayer.stop();
     }
 
     // --- UPGRADED HOVER METHOD ---
@@ -151,85 +173,47 @@ public class MainMenuController {
         });
     }
 
-    // --- SCENE TRANSITION METHODS ---
-
-    private void fadeOutToGame() {
-        // 1. Create a fade out animation for the entire root pane (takes 0.5 seconds)
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(500), rootPane);
-        fadeOut.setFromValue(1.0); // 100% visible
-        fadeOut.setToValue(0.0);   // 0% visible (invisible)
-
-        // 2. Tell Java exactly what to do when the fade finishes
-        fadeOut.setOnFinished(event -> loadNextScene());
-
-        // 3. Start the fade!
-        fadeOut.play();
-    }
-
-    private void loadNextScene() {
-        try {
-            Parent gameRoot = FXMLLoader.load(getClass().getResource("MainMenu.fxml"));
-
-            // 2. Start the new screen at 0% opacity so we can fade it in
-            gameRoot.setOpacity(0.0);
-
-            // 3. Grab the current window and swap the scene
-            Stage stage = (Stage) rootPane.getScene().getWindow();
-            stage.setScene(new Scene(gameRoot, 800, 600)); // Keep the same window size
-
-            // 4. Fade the new scene in!
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(500), gameRoot);
-            fadeIn.setFromValue(0.0);
-            fadeIn.setToValue(1.0);
-            fadeIn.play();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Could not load the next scene! Check the file name.");
-        }
-    }
-
     // --- NEW: PARTICLE GENERATOR METHOD ---
     private void createParticles() {
+        // Force the particlePane to match the window size
+        particlePane.setPrefSize(rootPane.getWidth(), rootPane.getHeight());
+
         Random rand = new Random();
+        double width = rootPane.getWidth();
+        double height = rootPane.getHeight();
 
-        // Create 30 floating particles
-        for (int i = 0; i < 30; i++) {
-            // 1. Create a circle with a random size (radius between 2 and 7)
+        // Safety check: if width is still 0, use a default so it doesn't crash
+        if (width <= 0) width = 800;
+        if (height <= 0) height = 600;
+
+        for (int i = 0; i < 80; i++) {
             Circle particle = new Circle(rand.nextDouble() * 5 + 2);
-
-            // 2. Make it a semi-transparent glowing purple (matches your subtitle!)
             particle.setFill(Color.web("#00d4ff", 0.5));
-
-            // 3. Add a blur effect to make it look like glowing light/smoke
             particle.setEffect(new GaussianBlur(rand.nextDouble() * 5 + 5));
 
-            // 4. Set random starting positions
-            // X: anywhere across the 800px width
-            // Y: anywhere from the bottom of the screen (600) down to 1200px below it
-            double startX = rand.nextDouble() * 800;
-            double startY = rand.nextDouble() * 600 + 600;
+            // Spawn across the FULL width and below the FULL height
+            double startX = rand.nextDouble() * width;
+            double startY = height + (rand.nextDouble() * 200);
+
             particle.setTranslateX(startX);
             particle.setTranslateY(startY);
-
-            // 5. Add the particle to our invisible pane
             particlePane.getChildren().add(particle);
 
-            // --- ANIMATIONS ---
+            // Animation: Ensure it travels the WHOLE height of the window
+            TranslateTransition floatUp = new TranslateTransition(
+                    Duration.seconds(rand.nextDouble() * 10 + 10), particle
+            );
+            floatUp.setByY(-(height + 400));
+            floatUp.setCycleCount(Animation.INDEFINITE);
 
-            // Float upwards animation (Takes 10 to 20 seconds to reach the top)
-            TranslateTransition floatUp = new TranslateTransition(Duration.seconds(rand.nextDouble() * 10 + 10), particle);
-            floatUp.setByY(-1000); // Move 1000 pixels straight up
-            floatUp.setCycleCount(Animation.INDEFINITE); // Keep doing it forever
-
-            // Pulse (Fade in and out) animation (Takes 2 to 4 seconds)
-            FadeTransition pulse = new FadeTransition(Duration.seconds(rand.nextDouble() * 2 + 2), particle);
-            pulse.setFromValue(0.2); // Dim
-            pulse.setToValue(0.8);   // Bright
-            pulse.setAutoReverse(true); // Smoothly fade back down
+            FadeTransition pulse = new FadeTransition(
+                    Duration.seconds(rand.nextDouble() * 2 + 2), particle
+            );
+            pulse.setFromValue(0.2);
+            pulse.setToValue(0.8);
+            pulse.setAutoReverse(true);
             pulse.setCycleCount(Animation.INDEFINITE);
 
-            // Start both animations for this specific particle!
             floatUp.play();
             pulse.play();
         }
