@@ -12,6 +12,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -25,7 +26,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
-import java.io.IOException;
+import java.net.URL;
 import java.util.Random;
 
 public class GameController {
@@ -34,7 +35,6 @@ public class GameController {
     @FXML private ImageView bgImage;
     @FXML private Pane particlePane;
 
-    // UI Elements
     @FXML private GridPane boardGrid;
     @FXML private Label lblTurnInfo;
     @FXML private VBox playerStatsBox;
@@ -44,173 +44,192 @@ public class GameController {
 
     @FXML private Button btnRollDice;
     @FXML private Button btnPowerup;
+    @FXML private Button HomeMenu;
 
-    // Backend Connection
+    // The Engines
     private Game gameEngine;
-
-    // Keep track of our GUI cells (Index 0 to 99)
-    private StackPane[] guiCells = new StackPane[100];
+    private BoardRenderer boardRenderer;
 
     @FXML
     public void initialize() {
-        // 1. Setup Cyber-Premium Visuals
+
+        SoundManager.init();
         setupVisuals();
 
-        // 2. Initialize the Backend Engine
+        // 2. Safely Initialize Backend
         try {
-            // For now, we default to SCARER. You can add a role selection screen later!
             gameEngine = new Game(Role.SCARER);
-            log("Game initialized. You are playing as a " + Role.SCARER);
-        } catch (IOException e) {
-            log("CRITICAL ERROR: Failed to load CSV data! " + e.getMessage());
-            return;
+            log("SYSTEM: Game Engine Initialized.");
+        } catch (Exception e) {
+            // IF CSV FILES ARE MISSING, IT CRASHES HERE
+            log("CRITICAL ERROR: Could not load Game Backend. Check your CSV file paths!");
+            e.printStackTrace();
+            return; // Stops the board from drawing, leaving it empty
         }
 
-        // 3. Build the GUI Board (100 cells, Zigzag)
-        generateBoard();
+        // 3. Connect the Board Renderer
+        boardRenderer = new BoardRenderer(boardGrid);
+        boardRenderer.renderInitialBoard(gameEngine.getBoard());
 
-        // 4. Setup Button Actions
+        // 4. Setup Controls & Initial UI State
         setupActions();
-
-        // 5. Initial Sync
         updateUI();
-    }
-
-    private void generateBoard() {
-        boardGrid.getChildren().clear();
-
-        for (int i = 0; i < 100; i++) {
-            StackPane cell = new StackPane();
-
-            // Glassmorphism Cell Style
-            cell.setPrefSize(60, 60);
-            cell.setStyle("-fx-background-color: rgba(255, 255, 255, 0.05); " +
-                    "-fx-border-color: rgba(0, 212, 255, 0.2); " +
-                    "-fx-border-width: 1; -fx-border-radius: 5;");
-
-            // Add cell number for visual tracking
-            Label cellNumber = new Label(String.valueOf(i));
-            cellNumber.setStyle("-fx-text-fill: rgba(255,255,255,0.2);");
-            cell.getChildren().add(cellNumber);
-
-            guiCells[i] = cell;
-
-            // --- ZIGZAG MATHEMATICS ---
-            // Row 9 is the bottom, Row 0 is the top.
-            int row = 9 - (i / 10);
-
-            // Even rows (from bottom) go Left-to-Right. Odd rows go Right-to-Left.
-            int col = (i / 10) % 2 == 0 ? (i % 10) : (9 - (i % 10));
-
-            boardGrid.add(cell, col, row);
-        }
     }
 
     private void setupActions() {
         btnRollDice.setOnAction(e -> {
-            try {
-                // Call the Engine!
-                gameEngine.playTurn();
-                log(gameEngine.getCurrent().getName() + " rolled the dice and ended their turn.");
+            if (gameEngine == null) return;
+            btnRollDice.setDisable(true);
 
-            } catch (InvalidMoveException ex) {
-                // Milestone 3: Handle Exceptions Gracefully
-                showError("Invalid Move", ex.getMessage());
-                log("Move failed: " + ex.getMessage());
-            } catch (Exception ex) {
-                ex.printStackTrace(); // Catch any unexpected engine errors
-            }
+            // Priority 5: Play sound when dice are rolled
+            SoundManager.playDice();
 
-            updateUI();
-            checkWinCondition();
+            // --- 1. RECORD STATE BEFORE THE MOVE ---
+            Monster activeMonster = gameEngine.getCurrent();
+            Monster opponent = gameEngine.getOpponent();
+            int prePosPlayer = activeMonster.getPosition();
+            int preEnergyPlayer = activeMonster.getEnergy();
+            int preEnergyOpponent = opponent.getEnergy();
+            boolean preShieldPlayer = activeMonster.isShielded();
+            game.engine.Role preRolePlayer = activeMonster.getRole();
+
+            // --- 2. ROLL THE DICE ---
+            AnimationManager.animateDiceRoll(btnRollDice, () -> {
+                try {
+                    gameEngine.playTurn();
+
+                    // Priority 5: Play move sound after dice stops
+                    SoundManager.playMove();
+
+                    // --- UPDATE ACTION LOG ---
+                    int postPosPlayer = activeMonster.getPosition();
+                    int spacesMoved = postPosPlayer - prePosPlayer;
+                    if (spacesMoved > 0 && spacesMoved <= 6) {
+                        log(activeMonster.getName() + " rolled a " + spacesMoved + " and landed on Cell " + postPosPlayer + ".");
+                    } else {
+                        log(activeMonster.getName() + " was shifted to Cell " + postPosPlayer + ".");
+                    }
+
+                    // --- 3. COMPARE STATE FOR SOUNDS & VISUALS ---
+                    StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
+
+                    // EVENT: Damage/Energy Loss
+                    if (activeMonster.getEnergy() < preEnergyPlayer) {
+                        SoundManager.playDamage(); // Trigger sound
+                        int lost = preEnergyPlayer - activeMonster.getEnergy();
+                        NotificationManager.showDamage(playerCell, lost);
+                        AnimationManager.animateDamageShake(playerCell);
+                    }
+
+                    // EVENT: Card Drawn
+                    if (gameEngine.getBoard().getBoardCells()[activeMonster.getPosition() / 10][activeMonster.getPosition() % 10] instanceof game.engine.cells.CardCell) {
+                        SoundManager.playCard(); // Trigger sound
+                        AnimationManager.showCardPopup(rootPane, "MYSTERY CARD", "A card effect has been triggered!");
+                    }
+
+                    // Check for winner
+                    if (gameEngine.getWinner() != null) {
+                        SoundManager.playVictory(); // Trigger sound
+                    }
+
+                } catch (InvalidMoveException ex) {
+                    SoundManager.playError(); // Trigger error sound
+                    showError("Invalid Move", ex.getMessage());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                updateUI();
+                checkWinCondition();
+                btnRollDice.setDisable(false);
+            });
         });
 
         btnPowerup.setOnAction(e -> {
+            if (gameEngine == null) return;
             try {
-                // Call the Engine!
                 gameEngine.usePowerup();
-                log(gameEngine.getCurrent().getName() + " used their powerup!");
+                SoundManager.playCard(); // Re-use card sound for powerup
+                log(gameEngine.getCurrent().getName() + " used a powerup!");
+                StackPane playerCell = boardRenderer.getCellVisual(gameEngine.getCurrent().getPosition());
+                AnimationManager.animateFloatingText(playerCell, "-500 ENERGY", false);
             } catch (OutOfEnergyException ex) {
-                // Milestone 3: Handle Exceptions Gracefully
+                SoundManager.playError();
                 showError("Not Enough Energy", ex.getMessage());
-                log("Powerup failed: " + ex.getMessage());
             }
             updateUI();
         });
+
+        if (HomeMenu != null) {
+            HomeMenu.setOnAction(e -> {
+                // Ensure UI sound plays before leaving
+                SoundManager.playMove();
+                SceneManager.switchScene("MainMenu.fxml");
+            });
+        }
     }
 
     private void updateUI() {
-        // 1. Update Turn Info
-        lblTurnInfo.setText("TURN: " + gameEngine.getCurrent().getName().toUpperCase());
+        if (gameEngine == null) return;
 
-        // 2. Update Stats Panel
         Monster player = gameEngine.getPlayer();
         Monster opponent = gameEngine.getOpponent();
+        Monster current = gameEngine.getCurrent();
 
-        lblPlayerStats.setText(
-                player.getName() + " (YOU)\n" +
-                        "Energy: " + player.getEnergy() + "\n" +
-                        "Position: " + player.getPosition()
-        );
-
-        lblOpponentStats.setText(
-                opponent.getName() + " (OPPONENT)\n" +
-                        "Energy: " + opponent.getEnergy() + "\n" +
-                        "Position: " + opponent.getPosition()
-        );
-
-        // 3. Clear all monsters from the board GUI
-        for (StackPane cell : guiCells) {
-            // Keep the cell number, remove anything else (like monsters)
-            cell.getChildren().removeIf(node -> node instanceof Circle);
+        // --- DYNAMIC TURN INDICATOR ---
+        if (current == player) {
+            lblTurnInfo.setText("TURN: " + player.getName().toUpperCase() + " (YOU)");
+            lblTurnInfo.setStyle("-fx-text-fill: #00d4ff; -fx-font-size: 32px; -fx-font-weight: bold;"); // Blue for Player
+        } else {
+            lblTurnInfo.setText("TURN: " + opponent.getName().toUpperCase() + " (OPPONENT)");
+            lblTurnInfo.setStyle("-fx-text-fill: #ff003c; -fx-font-size: 32px; -fx-font-weight: bold;"); // Red for Opponent
         }
 
-        // 4. Draw Opponent
-        drawMonsterOnGrid(opponent.getPosition(), Color.web("#ff003c")); // Red for opponent
+        // Update Stats Panel
+        lblPlayerStats.setText(player.getName() + " (YOU)\nEnergy: " + player.getEnergy() + "\nPosition: " + player.getPosition());
+        lblOpponentStats.setText(opponent.getName() + " (OPPONENT)\nEnergy: " + opponent.getEnergy() + "\nPosition: " + opponent.getPosition());
 
-        // 5. Draw Player (Drawn second so it stays on top if they share a cell)
-        drawMonsterOnGrid(player.getPosition(), Color.web("#00d4ff")); // Neon Blue for player
-    }
-
-    private void drawMonsterOnGrid(int position, Color color) {
-        if (position >= 0 && position < 100) {
-            Circle monsterToken = new Circle(15, color);
-            monsterToken.setEffect(new GaussianBlur(5)); // Glow effect
-            guiCells[position].getChildren().add(monsterToken);
-        }
+        // Refresh Board Visuals
+        boardRenderer.updateMonsterPositions(player, opponent, current);
     }
 
     private void checkWinCondition() {
         Monster winner = gameEngine.getWinner();
         if (winner != null) {
             log("GAME OVER! " + winner.getName() + " WINS!");
-            showError("VICTORY!", winner.getName() + " has reached Boo's Door with enough energy!");
-
-            // Disable controls
+            showError("VICTORY!", winner.getName() + " has reached Boo's Door!");
             btnRollDice.setDisable(true);
             btnPowerup.setDisable(true);
         }
     }
 
     private void log(String message) {
-        actionLog.appendText(message + "\n");
+        if (actionLog != null) actionLog.appendText(message + "\n");
     }
 
     private void showError(String title, String message) {
-        // According to Milestone 3: Show visual indicator for invalid actions without crashing
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        // Add custom styling here if you want to make the alert match your theme
-        alert.showAndWait();
+        // Platform.runLater ensures the dialog waits until the animation pulse is over
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+
+            // Milestone 3: The game should not be stopped / terminated
+            // for any invalid action
+            alert.showAndWait();
+        });
     }
 
-    // --- VISUALS & PARTICLES (From MainMenu) ---
     private void setupVisuals() {
         bgImage.setPreserveRatio(false);
         bgImage.fitWidthProperty().bind(rootPane.widthProperty());
         bgImage.fitHeightProperty().bind(rootPane.heightProperty());
+
+        try {
+            URL url = getClass().getResource("/MainMenu/assets/images/background.jpg");
+            if (url != null) bgImage.setImage(new Image(url.toExternalForm()));
+        } catch (Exception e) { System.out.println("Background image not found."); }
 
         Platform.runLater(this::createParticles);
     }
@@ -218,33 +237,27 @@ public class GameController {
     private void createParticles() {
         particlePane.setPrefSize(rootPane.getWidth(), rootPane.getHeight());
         Random rand = new Random();
-        double width = rootPane.getWidth();
-        double height = rootPane.getHeight();
-
-        if (width <= 0) width = 1000;
-        if (height <= 0) height = 800;
+        double w = rootPane.getWidth() > 0 ? rootPane.getWidth() : 1000;
+        double h = rootPane.getHeight() > 0 ? rootPane.getHeight() : 800;
 
         for (int i = 0; i < 40; i++) {
-            Circle particle = new Circle(rand.nextDouble() * 5 + 2);
-            particle.setFill(Color.web("#00d4ff", 0.5));
-            particle.setEffect(new GaussianBlur(rand.nextDouble() * 5 + 5));
+            Circle p = new Circle(rand.nextDouble() * 5 + 2, Color.web("#00d4ff", 0.5));
+            p.setEffect(new GaussianBlur(rand.nextDouble() * 5 + 5));
+            p.setTranslateX(rand.nextDouble() * w);
+            p.setTranslateY(h + (rand.nextDouble() * 200));
+            particlePane.getChildren().add(p);
 
-            particle.setTranslateX(rand.nextDouble() * width);
-            particle.setTranslateY(height + (rand.nextDouble() * 200));
-            particlePane.getChildren().add(particle);
-
-            TranslateTransition floatUp = new TranslateTransition(Duration.seconds(rand.nextDouble() * 10 + 10), particle);
-            floatUp.setByY(-(height + 400));
+            TranslateTransition floatUp = new TranslateTransition(Duration.seconds(rand.nextDouble() * 10 + 10), p);
+            floatUp.setByY(-(h + 400));
             floatUp.setCycleCount(Animation.INDEFINITE);
 
-            FadeTransition pulse = new FadeTransition(Duration.seconds(rand.nextDouble() * 2 + 2), particle);
-            pulse.setFromValue(0.2);
-            pulse.setToValue(0.8);
-            pulse.setAutoReverse(true);
-            pulse.setCycleCount(Animation.INDEFINITE);
+            FadeTransition pulse = new FadeTransition(Duration.seconds(rand.nextDouble() * 2 + 2), p);
+            pulse.setFromValue(0.2); pulse.setToValue(0.8);
+            pulse.setAutoReverse(true); pulse.setCycleCount(Animation.INDEFINITE);
 
-            floatUp.play();
-            pulse.play();
+            floatUp.play(); pulse.play();
         }
     }
+
+
 }

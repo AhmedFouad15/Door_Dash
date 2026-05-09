@@ -11,13 +11,12 @@ import java.io.IOException;
 public class SceneManager {
     private static Stage stage;
 
-    // Call this once in your MainApp start method
     public static void setStage(Stage primaryStage) {
         stage = primaryStage;
     }
 
     public static void switchScene(String fxmlFile) {
-        // 1. Create a Fade Out on the current root (if it exists)
+        // Triggers the fade out before loading the new scene
         if (stage.getScene() != null && stage.getScene().getRoot() != null) {
             FadeTransition fadeOut = new FadeTransition(Duration.millis(500), stage.getScene().getRoot());
             fadeOut.setFromValue(1.0);
@@ -74,4 +73,6 @@ public class SceneManager {
             e.printStackTrace();
         }
     }
+
+
 }
