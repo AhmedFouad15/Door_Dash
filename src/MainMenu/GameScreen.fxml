@@ -1,59 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Pane?>
-<?import javafx.scene.layout.StackPane?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
 
-<StackPane fx:id="rootPane" prefHeight="600.0" prefWidth="800.0" stylesheets="@menu.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainMenu.GameController">
+<StackPane fx:id="rootPane" prefHeight="800.0" prefWidth="1200.0" stylesheets="@menu.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainMenu.GameController">
     <children>
-        <!-- Background DNA -->
-        <ImageView fx:id="bgImage" fitHeight="600.0" fitWidth="800.0" mouseTransparent="true" pickOnBounds="true" preserveRatio="false" />
+        <ImageView fx:id="bgImage" mouseTransparent="true" pickOnBounds="true" preserveRatio="false" />
         <Pane mouseTransparent="true" style="-fx-background-color: rgba(0,0,0,0.6);" />
         <Pane fx:id="particlePane" mouseTransparent="true" />
 
-        <!-- The Game UI -->
         <BorderPane>
             <top>
                 <HBox alignment="CENTER" prefHeight="80.0" BorderPane.alignment="CENTER">
                     <children>
-                        <Label style="-fx-font-size: 32px;" styleClass="subtitle-text" text="PLAYER TURN" />
+                        <Label fx:id="lblTurnInfo" styleClass="subtitle-text" text="PLAYER TURN" style="-fx-font-size: 32px;" />
                     </children>
                 </HBox>
             </top>
+
             <left>
-                <VBox prefWidth="180.0" spacing="20.0" style="-fx-padding: 20;">
+                <VBox fx:id="playerStatsBox" prefWidth="250.0" spacing="20.0" style="-fx-padding: 20;">
                     <children>
-                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold;" text="MONSTER STATS" />
-                        <!-- Placeholder for Monster Card -->
-                        <Pane prefHeight="150.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10;" />
+                        <Label text="MONSTER STATS" style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" />
+
+                        <Pane prefHeight="150.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
+                            <children>
+                                <Label fx:id="lblPlayerStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Player Stats Here" />
+                            </children>
+                        </Pane>
+
+                        <Pane prefHeight="150.0" style="-fx-border-color: #ff003c; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
+                            <children>
+                                <Label fx:id="lblOpponentStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Opponent Stats Here" />
+                            </children>
+                        </Pane>
                     </children>
                 </VBox>
             </left>
+
             <center>
-                <GridPane fx:id="boardGrid" alignment="CENTER" hgap="5.0" vgap="5.0">
-                    <!-- No children here! Java handles it. -->
-                </GridPane>
-            </center>
-            <right>
-                <VBox prefWidth="200.0" spacing="10.0" style="-fx-padding: 20;">
+                <StackPane style="-fx-border-color: rgba(0,212,255,0.3); -fx-border-width: 2; -fx-border-radius: 20; -fx-padding: 10; -fx-margin: 10;">
                     <children>
-                        <Label style="-fx-text-fill: #00d4ff;" text="ACTION LOG" />
-                        <TextArea editable="false" prefHeight="400.0" style="-fx-control-inner-background: rgba(0,0,0,0.3); -fx-text-fill: white;" text="Game started..." wrapText="true" />
+                        <GridPane fx:id="boardGrid" alignment="CENTER" hgap="5.0" vgap="5.0" />
+                    </children>
+                </StackPane>
+            </center>
+
+            <right>
+                <VBox prefWidth="250.0" spacing="10.0" style="-fx-padding: 20;">
+                    <children>
+                        <Label text="ACTION LOG" style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" />
+                        <TextArea fx:id="actionLog" editable="false" prefHeight="500.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
                     </children>
                 </VBox>
             </right>
+
             <bottom>
                 <HBox alignment="CENTER" prefHeight="100.0" spacing="30.0" BorderPane.alignment="CENTER">
                     <children>
-                        <Button mnemonicParsing="false" prefHeight="47.0" prefWidth="177.0" text="ATTACK" />
-                        <Button mnemonicParsing="false" prefHeight="47.0" prefWidth="182.0" text="END TURN" />
+                        <Button fx:id="btnRollDice" mnemonicParsing="false" styleClass="button" prefWidth="200.0" text="ROLL DICE &amp; MOVE" />
+                        <Button fx:id="btnPowerup" mnemonicParsing="false" styleClass="button" prefWidth="200.0" text="USE POWERUP" />
                     </children>
                 </HBox>
             </bottom>
