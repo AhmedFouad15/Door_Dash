@@ -2,6 +2,7 @@ package MainMenu;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -36,6 +37,12 @@ public class InstructionsController {
 
     @FXML
     public void initialize() {
+
+        // 2. THE FAILSAFE: Wait for the UI to exist, then spawn
+        Platform.runLater(() -> {
+            createParticles();
+        });
+
         // Load Sound
         try {
             // Load background music (loops forever)
@@ -70,7 +77,6 @@ public class InstructionsController {
         });
 
         applyAnimations();
-        createParticles(); // Keep the vibe consistent!
     }
 
     private void applyAnimations() {
@@ -127,45 +133,45 @@ public class InstructionsController {
     }
 
     private void createParticles() {
+        // Force the particlePane to match the window size
+        particlePane.setPrefSize(rootPane.getWidth(), rootPane.getHeight());
+
         Random rand = new Random();
+        double width = rootPane.getWidth();
+        double height = rootPane.getHeight();
 
-        // Create 30 floating particles
-        for (int i = 0; i < 30; i++) {
-            // 1. Create a circle with a random size (radius between 2 and 7)
+        // Safety check: if width is still 0, use a default so it doesn't crash
+        if (width <= 0) width = 800;
+        if (height <= 0) height = 600;
+
+        for (int i = 0; i < 80; i++) {
             Circle particle = new Circle(rand.nextDouble() * 5 + 2);
-
-            // 2. Make it a semi-transparent glowing purple (matches your subtitle!)
             particle.setFill(Color.web("#00d4ff", 0.5));
-
-            // 3. Add a blur effect to make it look like glowing light/smoke
             particle.setEffect(new GaussianBlur(rand.nextDouble() * 5 + 5));
 
-            // 4. Set random starting positions
-            // X: anywhere across the 800px width
-            // Y: anywhere from the bottom of the screen (600) down to 1200px below it
-            double startX = rand.nextDouble() * 800;
-            double startY = rand.nextDouble() * 600 + 600;
+            // Spawn across the FULL width and below the FULL height
+            double startX = rand.nextDouble() * width;
+            double startY = height + (rand.nextDouble() * 200);
+
             particle.setTranslateX(startX);
             particle.setTranslateY(startY);
-
-            // 5. Add the particle to our invisible pane
             particlePane.getChildren().add(particle);
 
-            // --- ANIMATIONS ---
+            // Animation: Ensure it travels the WHOLE height of the window
+            TranslateTransition floatUp = new TranslateTransition(
+                    Duration.seconds(rand.nextDouble() * 10 + 10), particle
+            );
+            floatUp.setByY(-(height + 400));
+            floatUp.setCycleCount(Animation.INDEFINITE);
 
-            // Float upwards animation (Takes 10 to 20 seconds to reach the top)
-            TranslateTransition floatUp = new TranslateTransition(Duration.seconds(rand.nextDouble() * 10 + 10), particle);
-            floatUp.setByY(-1000); // Move 1000 pixels straight up
-            floatUp.setCycleCount(Animation.INDEFINITE); // Keep doing it forever
-
-            // Pulse (Fade in and out) animation (Takes 2 to 4 seconds)
-            FadeTransition pulse = new FadeTransition(Duration.seconds(rand.nextDouble() * 2 + 2), particle);
-            pulse.setFromValue(0.2); // Dim
-            pulse.setToValue(0.8);   // Bright
-            pulse.setAutoReverse(true); // Smoothly fade back down
+            FadeTransition pulse = new FadeTransition(
+                    Duration.seconds(rand.nextDouble() * 2 + 2), particle
+            );
+            pulse.setFromValue(0.2);
+            pulse.setToValue(0.8);
+            pulse.setAutoReverse(true);
             pulse.setCycleCount(Animation.INDEFINITE);
 
-            // Start both animations for this specific particle!
             floatUp.play();
             pulse.play();
         }

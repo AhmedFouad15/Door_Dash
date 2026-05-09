@@ -11,15 +11,10 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         SceneManager.setStage(primaryStage);
-
-        primaryStage.setFullScreen(true);
-
-        // 3. OPTIONAL: Customize the Exit Hint
-        // By default, JavaFX shows "Press ESC to exit full-screen"
-        primaryStage.setFullScreenExitHint("Press ESC to window the game");
-
-        // Use the manager to load the first screen
         SceneManager.switchScene("MainMenu.fxml");
+
+        // Ensure it can still be resized after they press ESC
+        primaryStage.setResizable(true);
 
         primaryStage.setTitle("DoorDasH");
         primaryStage.show();

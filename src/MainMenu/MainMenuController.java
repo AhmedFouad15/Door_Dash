@@ -65,7 +65,7 @@ public class MainMenuController {
 
         btnStart.setOnAction(e -> {
             stopAudio();
-            SceneManager.switchScene("Game.fxml");
+            SceneManager.switchScene("GameScreen.fxml");
         });
 
         btnInstructions.setOnAction(e -> {
