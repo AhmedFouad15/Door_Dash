@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import java.io.IOException;
+import java.net.URL;
 
 public class SceneManager {
     private static Stage stage;
@@ -31,7 +32,7 @@ public class SceneManager {
     private static void loadNewScene(String fxmlFile) {
         try {
             String path = "/MainMenu/" + fxmlFile;
-            var resource = SceneManager.class.getResource(path);
+            URL resource = SceneManager.class.getResource(path);
 
             if (resource == null) {
                 System.out.println("FAILED TO FIND: " + path);
