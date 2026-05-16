@@ -53,36 +53,72 @@ public class BoardRenderer {
         return cellNodes.get(index);
     }
 
-    public void updateMonsterPositions(Monster player, Monster opponent, Monster currentActive) {
+    public void updateMonsterPositions(Monster player, Monster opponent, Monster currentActive, Runnable onComplete) {
         StackPane newPlayerVisual = MonsterRenderer.createMonsterVisual(player, player == currentActive);
         StackPane newOpponentVisual = MonsterRenderer.createMonsterVisual(opponent, opponent == currentActive);
 
-        handleMonsterPlacement(player, newPlayerVisual, lastPlayerPos, true);
+        // We use an array to count when BOTH player and opponent updates are finished
+        int[] completed = {0};
+        Runnable checkFinished = () -> {
+            completed[0]++;
+            if (completed[0] == 2 && onComplete != null) {
+                onComplete.run();
+            }
+        };
+
+        handleMonsterPlacement(player, newPlayerVisual, lastPlayerPos, true, checkFinished);
         lastPlayerPos = player.getPosition();
 
-        handleMonsterPlacement(opponent, newOpponentVisual, lastOpponentPos, false);
+        handleMonsterPlacement(opponent, newOpponentVisual, lastOpponentPos, false, checkFinished);
         lastOpponentPos = opponent.getPosition();
     }
 
-    private void handleMonsterPlacement(Monster monster, StackPane newVisual, int lastPos, boolean isPlayer) {
+    private void handleMonsterPlacement(Monster monster, StackPane newVisual, int lastPos, boolean isPlayer, Runnable onComplete) {
         String tag = isPlayer ? "player_visual" : "opponent_visual";
         newVisual.setId(tag);
 
-        StackPane targetCell = getCellVisual(monster.getPosition());
+        int targetPos = monster.getPosition();
 
-        if (lastPos == -1 || lastPos == monster.getPosition()) {
+        // If it's the start of the game or the monster didn't move, just place it
+        if (lastPos == -1 || lastPos == targetPos) {
+            StackPane targetCell = getCellVisual(targetPos);
             targetCell.getChildren().removeIf(n -> tag.equals(n.getId()));
             targetCell.getChildren().add(newVisual);
+            if (onComplete != null) onComplete.run();
         } else {
-            StackPane oldCell = getCellVisual(lastPos);
-            oldCell.getChildren().removeIf(n -> tag.equals(n.getId()));
-            oldCell.getChildren().add(newVisual);
-
-            AnimationManager.animateMonsterMove(newVisual, oldCell, targetCell, () -> {
-                oldCell.getChildren().remove(newVisual);
-                targetCell.getChildren().removeIf(n -> tag.equals(n.getId()));
-                targetCell.getChildren().add(newVisual);
-            });
+            // Start the recursive step-by-step walk
+            moveStepByStep(newVisual, lastPos, targetPos, tag, onComplete);
         }
+    }
+
+    private void moveStepByStep(StackPane visual, int currentStep, int endStep, String tag, Runnable onComplete) {
+        // Base Case: We arrived at the destination!
+        if (currentStep == endStep) {
+            if (onComplete != null) onComplete.run();
+            return;
+        }
+
+        // Determine if we are moving forward or backward
+        int stepDir = (currentStep < endStep) ? 1 : -1;
+        int nextStep = currentStep + stepDir;
+
+        StackPane currentCell = getCellVisual(currentStep);
+        StackPane nextCell = getCellVisual(nextStep);
+
+        // Ensure the visual is currently in the currentCell before moving
+        if (!currentCell.getChildren().contains(visual)) {
+            currentCell.getChildren().removeIf(n -> tag.equals(n.getId()));
+            currentCell.getChildren().add(visual);
+        }
+
+        // Use your existing AnimationManager!
+        AnimationManager.animateMonsterMove(visual, currentCell, nextCell, () -> {
+            currentCell.getChildren().remove(visual);
+            nextCell.getChildren().removeIf(n -> tag.equals(n.getId()));
+            nextCell.getChildren().add(visual);
+
+            // Recursively call the next step
+            moveStepByStep(visual, nextStep, endStep, tag, onComplete);
+        });
     }
 }

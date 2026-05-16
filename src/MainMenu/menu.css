@@ -1,5 +1,7 @@
 .root {
-    -fx-font-family: "Arial";
+    -fx-background-image: url("/MainMenu/assets/images/background.jpg");
+    -fx-background-size: cover;
+    -fx-background-position: center;
 }
 
 .title {

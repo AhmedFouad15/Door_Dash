@@ -71,8 +71,8 @@ public class WinWindow {
 
         playAgainBtn.setOnAction(e -> {
             window.close();
-            // CORRECTED: Call the static method directly
-            SceneManager.switchScene("GameScreen.fxml");
+            // Call the setup window instead of switching directly to the game!
+            GameSetupWindow.display();
         });
 
         menuBtn.setOnAction(e -> {

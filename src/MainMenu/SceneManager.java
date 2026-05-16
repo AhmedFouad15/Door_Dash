@@ -42,6 +42,18 @@ public class SceneManager {
             FXMLLoader loader = new FXMLLoader(resource);
             Parent root = loader.load();
 
+            if (root instanceof javafx.scene.layout.Region) {
+                String imageUrl = SceneManager.class
+                        .getResource("/MainMenu/assets/images/bg.jpeg")
+                        .toExternalForm();
+
+                ((javafx.scene.layout.Region) root).setStyle(
+                        "-fx-background-image: url('" + imageUrl + "');" +
+                                "-fx-background-size: cover;" +
+                                "-fx-background-position: center;"
+                );
+            }
+
             // --- THE FIX STARTS HERE ---
             // Get current dimensions BEFORE switching the scene
             double currentWidth = stage.getWidth();

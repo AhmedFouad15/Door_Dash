@@ -37,13 +37,13 @@
                   <Button fx:id="HomeMenu" mnemonicParsing="false" prefHeight="30.0" prefWidth="140.0" styleClass="button" text="Menu" />
                         <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="MONSTER STATS" />
 
-                        <Pane prefHeight="180.0" prefWidth="220.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
+                        <Pane prefHeight="215.0" prefWidth="210.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
                             <children>
                                 <Label fx:id="lblPlayerStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Player Stats Here" />
                             </children>
                         </Pane>
 
-                        <Pane prefHeight="180.0" prefWidth="220.0" style="-fx-border-color: #ff003c; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
+                        <Pane prefHeight="215.0" prefWidth="210.0" style="-fx-border-color: #ff003c; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
                             <children>
                                 <Label fx:id="lblOpponentStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Opponent Stats Here" />
                             </children>

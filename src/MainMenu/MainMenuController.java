@@ -42,6 +42,12 @@ public class MainMenuController {
     @FXML private Label Subtitle;
     @FXML private Pane particlePane;
 
+    @FXML
+    private void handleStartGame() {
+        // Just call the window! It handles the instructions, the choice, AND the scene switch for you.
+        GameSetupWindow.display();
+    }
+
     private MediaPlayer backgroundMusicPlayer;
     private AudioClip hoverSound;
     private AudioClip clickSound;
@@ -64,8 +70,8 @@ public class MainMenuController {
         btnExit.setOnAction(e -> Platform.exit());
 
         btnStart.setOnAction(e -> {
-            stopAudio();
-            SceneManager.switchScene("GameScreen.fxml");
+            stopAudio(); // Stop the menu music
+            GameSetupWindow.display(); // Open the Setup/Role Selection window!
         });
 
         btnInstructions.setOnAction(e -> {

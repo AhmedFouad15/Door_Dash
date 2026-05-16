@@ -22,7 +22,7 @@
             <Label fx:id="lblTitle" style="-fx-font-size: 60px; -fx-text-fill: white; -fx-font-weight: bold;" text="DoorDasH" />
             <Label fx:id="Subtitle" style="-fx-font-size: 24px; -fx-text-fill: white; -fx-effect: dropshadow(gaussian, #1e90ff, 15, 0.6, 0, 0);" text="Scare vs Laugh Touchdown" />
             <Button fx:id="btnStart" mnemonicParsing="false" prefHeight="50.0" prefWidth="300.0" text="Start" />
-            <Button fx:id="btnInstructions" mnemonicParsing="false" prefHeight="50.0" prefWidth="300.0" text="Game Instructions" />
+            <Button fx:id="btnInstructions" mnemonicParsing="false" prefHeight="50.0" prefWidth="300.0" text="Game Description" />
             <Button fx:id="btnExit" mnemonicParsing="false" prefHeight="50.0" prefWidth="300.0" text="Exit" />
          </children>
       </VBox>

@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<StackPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" stylesheets="@menu.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainMenu.InstructionsController">
+<StackPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" stylesheets="@menu.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainMenu.InstructionsController">
    <children>
-      <ImageView fx:id="bgImage" fitHeight="400.0" fitWidth="600.0" pickOnBounds="true" preserveRatio="true" />
-      <Pane prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: rgba(0,0,0,0.45);" />
+      <ImageView fx:id="bgImage" fitHeight="600.0" fitWidth="800.0" pickOnBounds="true" preserveRatio="true" />
+
+      <Pane prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: rgba(0,0,0,0.70);" />
       <Pane fx:id="particlePane" mouseTransparent="true" prefHeight="200.0" prefWidth="200.0" />
-      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" spacing="25.0">
+
+      <VBox alignment="TOP_CENTER" spacing="20.0">
+         <padding>
+            <Insets bottom="30.0" left="50.0" right="50.0" top="30.0" />
+         </padding>
          <children>
-            <Button fx:id="btnBack" mnemonicParsing="false" styleClass="button" text="BACK" />
-            <Label fx:id="lblTitle" style="-fx-font-size: 60px; -fx-text-fill: white; -fx-font-weight: bold;" text="HOW TO PLAY" />
-            <Label text="Label" />
+            <Label fx:id="lblTitle" style="-fx-font-size: 48px; -fx-text-fill: white; -fx-font-weight: bold;" text="Game Descriptions" />
+
+            <ScrollPane fx:id="scrollPane" fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+               <content>
+                  <VBox fx:id="textContainer" spacing="5.0" style="-fx-background-color: rgba(0,0,0,0.5); -fx-padding: 20; -fx-background-radius: 10;">
+                  </VBox>
+               </content>
+            </ScrollPane>
+
+            <Button fx:id="btnBack" mnemonicParsing="false" style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 10 40;" text="BACK TO MENU" />
          </children>
       </VBox>
    </children>

@@ -48,32 +48,30 @@ public class GameController {
     @FXML private Button btnPowerup;
     @FXML private Button HomeMenu;
 
+
     // The Engines
     private Game gameEngine;
     private BoardRenderer boardRenderer;
 
-    @FXML
-    public void initialize() {
+    public static Role playerRole = Role.SCARER;
 
+    public void initialize() {
         SoundManager.init();
         setupVisuals();
 
-        // 2. Safely Initialize Backend
         try {
-            gameEngine = new Game(Role.SCARER);
-            log("SYSTEM: Game Engine Initialized.");
+            // Modify this line to use the static variable chosen in the popup!
+            gameEngine = new Game(playerRole);
+            log("SYSTEM: Game Engine Initialized as " + playerRole);
         } catch (Exception e) {
-            // IF CSV FILES ARE MISSING, IT CRASHES HERE
-            log("CRITICAL ERROR: Could not load Game Backend. Check your CSV file paths!");
+            log("CRITICAL ERROR: Could not load Game Backend.");
             e.printStackTrace();
-            return; // Stops the board from drawing, leaving it empty
+            return;
         }
 
-        // 3. Connect the Board Renderer
         boardRenderer = new BoardRenderer(boardGrid);
         boardRenderer.renderInitialBoard(gameEngine.getBoard());
 
-        // 4. Setup Controls & Initial UI State
         setupActions();
         updateUI();
     }
@@ -97,58 +95,55 @@ public class GameController {
             game.engine.Role preRolePlayer = activeMonster.getRole();
 
             // --- 2. ROLL THE DICE ---
+            // --- 2. ROLL THE DICE ---
             AnimationManager.animateDiceRoll(btnRollDice, () -> {
                 try {
                     gameEngine.playTurn();
-
-                    // Priority 5: Play move sound after dice stops
                     SoundManager.playMove();
 
-                    // --- UPDATE ACTION LOG ---
                     int postPosPlayer = activeMonster.getPosition();
                     int spacesMoved = postPosPlayer - prePosPlayer;
                     if (spacesMoved > 0 && spacesMoved <= 6) {
-                        log(activeMonster.getName() + " rolled a " + spacesMoved + " and landed on Cell " + postPosPlayer + ".");
-                    } else {
-                        log(activeMonster.getName() + " was shifted to Cell " + postPosPlayer + ".");
+                        log(activeMonster.getName() + " rolled a " + spacesMoved + ".");
                     }
 
-                    // --- 3. COMPARE STATE FOR SOUNDS & VISUALS ---
-                    StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
+                    // WAIT FOR THE VISUAL WALK TO FINISH BEFORE SHOWING POPUPS
+                    updateUI(() -> {
+                        // --- 3. COMPARE STATE FOR SOUNDS & VISUALS ---
+                        StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
 
-                    // EVENT: Damage/Energy Loss
-                    if (activeMonster.getEnergy() < preEnergyPlayer) {
-                        SoundManager.playDamage(); // Trigger sound
-                        int lost = preEnergyPlayer - activeMonster.getEnergy();
-                        NotificationManager.showDamage(playerCell, lost);
-                        AnimationManager.animateDamageShake(playerCell);
-                    }
+                        // EVENT: Damage/Energy Loss
+                        if (activeMonster.getEnergy() < preEnergyPlayer) {
+                            SoundManager.playDamage();
+                            int lost = preEnergyPlayer - activeMonster.getEnergy();
+                            NotificationManager.showDamage(playerCell, lost);
+                            AnimationManager.animateDamageShake(playerCell);
+                        }
 
-                    // EVENT: Card Drawn
-                    if (gameEngine.getBoard().getBoardCells()[activeMonster.getPosition() / 10][activeMonster.getPosition() % 10] instanceof game.engine.cells.CardCell) {
-                        SoundManager.playCard(); // Trigger sound
-                        AnimationManager.showCardPopup(rootPane, "MYSTERY CARD", "A card effect has been triggered!");
-                    }
+                        // EVENT: Card Drawn
+                        if (gameEngine.getBoard().getBoardCells()[activeMonster.getPosition() / 10][activeMonster.getPosition() % 10] instanceof game.engine.cells.CardCell) {
+                            SoundManager.playCard();
+                            AnimationManager.showCardPopup(rootPane, "MYSTERY CARD", "A card effect has been triggered!");
+                        }
 
-                    // Check for winner sound
-                    if (gameEngine.getWinner() != null) {
-                        SoundManager.playVictory(); // Trigger sound
-                    }
+                        // Check for winner sound
+                        if (gameEngine.getWinner() != null) {
+                            SoundManager.playVictory();
+                        }
+
+                        // FINALIZE TURN
+                        checkWinCondition();
+                        if (gameEngine.getWinner() == null) {
+                            btnRollDice.setDisable(false);
+                        }
+                    });
 
                 } catch (InvalidMoveException ex) {
-                    SoundManager.playError(); // Trigger error sound
+                    SoundManager.playError();
                     showError("Invalid Move", ex.getMessage());
+                    btnRollDice.setDisable(false); // Re-enable if error
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                }
-
-                // --- 4. END OF TURN UPDATES ---
-                updateUI();
-                checkWinCondition();
-
-                // ONLY re-enable the dice if the game is still going!
-                if (gameEngine.getWinner() == null) {
-                    btnRollDice.setDisable(false);
                 }
             });
         });
@@ -177,7 +172,13 @@ public class GameController {
         }
     }
 
+    // Keep this one so basic calls still work!
     private void updateUI() {
+        updateUI(null);
+    }
+
+    // Replace the main updateUI method with this:
+    private void updateUI(Runnable onComplete) {
         if (gameEngine == null) return;
 
         Monster player = gameEngine.getPlayer();
@@ -193,12 +194,12 @@ public class GameController {
             lblTurnInfo.setStyle("-fx-text-fill: #ff003c; -fx-font-size: 32px; -fx-font-weight: bold;"); // Red for Opponent
         }
 
-        // Update Stats Panel
-        lblPlayerStats.setText(player.getName() + " (YOU)\nEnergy: " + player.getEnergy() + "\nPosition: " + player.getPosition());
-        lblOpponentStats.setText(opponent.getName() + " (OPPONENT)\nEnergy: " + opponent.getEnergy() + "\nPosition: " + opponent.getPosition());
+        // --- UPDATE STATS PANELS USING THE RESTORED RPG HELPER ---
+        updateStatPanel(player, lblPlayerStats, "--- YOUR MONSTER ---");
+        updateStatPanel(opponent, lblOpponentStats, "--- OPPONENT ---");
 
-        // Refresh Board Visuals
-        boardRenderer.updateMonsterPositions(player, opponent, current);
+        // Pass the callback to the renderer for the step-by-step animation!
+        boardRenderer.updateMonsterPositions(player, opponent, current, onComplete);
     }
 
 
@@ -277,6 +278,58 @@ public class GameController {
                 WinWindow.display(winner, currentStage);
             });
         }
+    }
+
+// =========================================
+    // RPG STATS HELPER METHODS
+    // =========================================
+
+    private String getMonsterType(Monster m) {
+        // Gets the class name (e.g., "Dasher", "Dynamo") dynamically
+        return m.getClass().getSimpleName();
+    }
+
+    private String getActiveEffects(Monster m) {
+        StringBuilder effects = new StringBuilder();
+
+        if (m.isShielded()) effects.append("[SHIELDED] ");
+        if (m.isFrozen()) effects.append("[FROZEN] ");
+        if (m.getConfusionTurns() > 0) {
+            effects.append("[CONFUSED: ").append(m.getConfusionTurns()).append(" turns] ");
+        }
+
+        return effects.length() == 0 ? "None" : effects.toString();
+    }
+
+    private void updateStatPanel(Monster m, Label displayLabel, String title) {
+        String originalRole = m.getOriginalRole().toString();
+        String currentRole = m.getRole().toString();
+
+        // Check if roles differ (indicates confusion)
+        String roleDisplay = originalRole;
+        if (!originalRole.equals(currentRole)) {
+            roleDisplay = originalRole + " (Confused as " + currentRole + ")";
+        }
+
+        // Build the multiline string
+        String stats = String.format(
+                "%s\n" +
+                        "Name: %s\n" +
+                        "Base Role: %s\n" +
+                        "Type: %s\n" +
+                        "Energy: %d\n" +
+                        "Position: %d\n" +
+                        "Effects: %s",
+                title,
+                m.getName(),
+                roleDisplay,
+                getMonsterType(m),
+                m.getEnergy(),
+                m.getPosition(),
+                getActiveEffects(m)
+        );
+
+        displayLabel.setText(stats);
     }
 
 }
