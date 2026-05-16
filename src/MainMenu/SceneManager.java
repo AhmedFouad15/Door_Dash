@@ -53,7 +53,7 @@ public class SceneManager {
             Scene scene = new Scene(root);
 
             // Apply your CSS
-            var cssResource = SceneManager.class.getResource("menu.css");
+            URL cssResource = SceneManager.class.getResource("menu.css");
             if (cssResource != null) {
                 scene.getStylesheets().add(cssResource.toExternalForm());
             }

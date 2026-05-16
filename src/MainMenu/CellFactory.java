@@ -15,46 +15,49 @@ import javafx.util.Duration;
 
 public class CellFactory {
 
+    // --- STEP 1: PRE-LOAD IMAGES (STATIC CACHING) ---
+    // This loads the images once when the game starts, saving your RAM.
+    private static final Image CARD_IMAGE = loadImage("/MainMenu/assets/images/card_icon.png");
+    private static final Image CONVEYOR_IMAGE = loadImage("/MainMenu/assets/images/conveyor_icon.png");
+    private static final Image SOCK_IMAGE = loadImage("/MainMenu/assets/images/sock_icon.png");
+    private static final Image DOOR_SCARER_IMAGE = loadImage("/MainMenu/assets/images/door_scarer.png");
+    private static final Image DOOR_LAUGHER_IMAGE = loadImage("/MainMenu/assets/images/door_laugher.png");
+
     public static StackPane createVisualCell(int index, Cell cellBackend) {
         StackPane visualCell = new StackPane();
         visualCell.setPrefSize(70, 70);
 
-        // Default: Yellow for Normal Cells as requested
         String bgColor = "rgba(255, 255, 0, 0.2)";
         String borderColor = "rgba(255, 255, 0, 0.5)";
         Color glowColor = Color.YELLOW;
-        String iconPath = null;
 
-        // --- IDENTIFY CELL TYPE & APPLY REQUESTED COLORS ---
+        // Use Image object instead of path string
+        Image cellIcon = null;
+
         if (cellBackend instanceof MonsterCell) {
-            // Monster Cell: Blue background
             bgColor = "rgba(0, 0, 255, 0.3)";
             borderColor = "#0000ff";
             glowColor = Color.BLUE;
         }
         else if (cellBackend instanceof CardCell) {
-            // Card Cell: Red background
             bgColor = "rgba(255, 0, 0, 0.3)";
             borderColor = "#ff0000";
             glowColor = Color.RED;
-            iconPath = "/MainMenu/assets/images/card_icon.png";
+            cellIcon = CARD_IMAGE; // Use cached image
         }
         else if (cellBackend instanceof ConveyorBelt) {
-            // Conveyor: Green background
             bgColor = "rgba(0, 255, 0, 0.3)";
             borderColor = "#00ff00";
             glowColor = Color.GREEN;
-            iconPath = "/MainMenu/assets/images/conveyor_icon.png";
+            cellIcon = CONVEYOR_IMAGE; // Use cached image
         }
         else if (cellBackend instanceof ContaminationSock) {
-            // Contamination Sock: Orange background
             bgColor = "rgba(255, 165, 0, 0.3)";
             borderColor = "#ffa500";
             glowColor = Color.ORANGE;
-            iconPath = "/MainMenu/assets/images/sock_icon.png";
+            cellIcon = SOCK_IMAGE; // Use cached image
         }
         else if (cellBackend instanceof DoorCell) {
-            // Maintaining Door logic from Milestone 3 requirements
             DoorCell door = (DoorCell) cellBackend;
             if (door.isActivated()) {
                 bgColor = "rgba(50, 50, 50, 0.4)";
@@ -64,36 +67,30 @@ public class CellFactory {
                 bgColor = (door.getRole() == Role.SCARER) ? "rgba(138, 43, 226, 0.3)" : "rgba(255, 215, 0, 0.3)";
                 borderColor = color;
                 glowColor = Color.web(color);
-                iconPath = (door.getRole() == Role.SCARER) ? "/MainMenu/assets/images/door_scarer.png" : "/MainMenu/assets/images/door_laugher.png";
+                cellIcon = (door.getRole() == Role.SCARER) ? DOOR_SCARER_IMAGE : DOOR_LAUGHER_IMAGE;
             }
         }
 
         visualCell.setStyle("-fx-background-color: " + bgColor + "; -fx-border-color: " + borderColor +
                 "; -fx-border-width: 2; -fx-border-radius: 8;");
 
-        // --- ADD ICON ---
-        if (iconPath != null) {
-            try {
-                ImageView iconView = new ImageView(new Image(CellFactory.class.getResourceAsStream(iconPath)));
-                iconView.setFitWidth(35);
-                iconView.setFitHeight(35);
-                visualCell.getChildren().add(iconView);
+        // --- STEP 2: USE THE CACHED IMAGE ---
+        if (cellIcon != null) {
+            ImageView iconView = new ImageView(cellIcon);
+            iconView.setFitWidth(35);
+            iconView.setFitHeight(35);
+            visualCell.getChildren().add(iconView);
 
-                if (cellBackend instanceof ConveyorBelt) {
-                    applyConveyorAnimation(iconView);
-                }
-            } catch (Exception e) {
-                // Silently skip if asset is missing
+            if (cellBackend instanceof ConveyorBelt) {
+                applyConveyorAnimation(iconView);
             }
         }
 
-        // --- ADD CELL NUMBER ---
         Label numberLabel = new Label(String.valueOf(index));
         numberLabel.setStyle("-fx-text-fill: rgba(255, 255, 255, 0.6); -fx-font-weight: bold;");
         StackPane.setAlignment(numberLabel, Pos.TOP_LEFT);
         visualCell.getChildren().add(numberLabel);
 
-        // --- HOVER EFFECTS & AMBIENT PULSE ---
         applyHoverEffects(visualCell, glowColor);
 
         if (cellBackend instanceof CardCell) {
@@ -101,6 +98,16 @@ public class CellFactory {
         }
 
         return visualCell;
+    }
+
+    // Helper method to load images safely
+    private static Image loadImage(String path) {
+        try {
+            return new Image(CellFactory.class.getResourceAsStream(path));
+        } catch (Exception e) {
+            System.err.println("Could not load image: " + path);
+            return null;
+        }
     }
 
     private static void applyHoverEffects(StackPane cell, Color glowColor) {
