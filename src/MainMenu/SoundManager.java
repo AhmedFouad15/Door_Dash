@@ -11,6 +11,7 @@ public class SoundManager {
     private static AudioClip cardSound;
     private static AudioClip damageSound;
     private static AudioClip victorySound;
+    private static AudioClip loseSound;
 
     // Call this ONCE in GameController.initialize()
     public static void init() {
@@ -19,11 +20,12 @@ public class SoundManager {
         damageSound = loadSound("UI.mp3");     // Using UI for damage/events
         cardSound = loadSound("UI.mp3");       // Using UI for cards
         errorSound = loadSound("click.wav");   // Using click for errors
-        moveSound = loadSound("click.wav");    // Using click for movement
+        moveSound = loadSound("click.wav");// Using click for movement
+        loseSound = loadSound("lose_sound.mp3");
+    }
 
         // Note: background2.mp3 and background.mp3 are long files,
         // they should be played via MediaPlayer, not AudioClip.
-    }
 
     private static AudioClip loadSound(String fileName) {
         try {
@@ -50,4 +52,5 @@ public class SoundManager {
     public static void playCard() { if (cardSound != null) cardSound.play(); }
     public static void playDamage() { if (damageSound != null) damageSound.play(); }
     public static void playVictory() { if (victorySound != null) victorySound.play(); }
+    public static void playLose() { if (loseSound != null) loseSound.play(); }
 }

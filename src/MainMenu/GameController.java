@@ -3,6 +3,7 @@ package MainMenu;
 import game.engine.Constants;
 import game.engine.Game;
 import game.engine.Role;
+import game.engine.cells.Cell;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.exceptions.OutOfEnergyException;
 import game.engine.monsters.Monster;
@@ -27,6 +28,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+import game.engine.cells.ContaminationSock;
 
 import java.net.URL;
 import java.util.Random;
@@ -78,60 +81,142 @@ public class GameController {
 
     private void setupActions() {
         btnRollDice.setOnAction(e -> {
-            // 1. Initial Checks & Disable button so player can't double-click
             if (gameEngine == null) return;
             btnRollDice.setDisable(true);
 
-            // Priority 5: Play sound when dice are rolled
             SoundManager.playDice();
 
             // --- 1. RECORD STATE BEFORE THE MOVE ---
             Monster activeMonster = gameEngine.getCurrent();
             Monster opponent = gameEngine.getOpponent();
+
             int prePosPlayer = activeMonster.getPosition();
             int preEnergyPlayer = activeMonster.getEnergy();
+            int prePosOpponent = opponent.getPosition();
             int preEnergyOpponent = opponent.getEnergy();
             boolean preShieldPlayer = activeMonster.isShielded();
             game.engine.Role preRolePlayer = activeMonster.getRole();
 
-            // --- 2. ROLL THE DICE ---
+            // PEEK AT THE TOP CARD
+            if (game.engine.Board.cards.isEmpty()) {
+                game.engine.Board.reloadCards();
+            }
+            game.engine.cards.Card topCard = game.engine.Board.cards.get(0);
+
             // --- 2. ROLL THE DICE ---
             AnimationManager.animateDiceRoll(btnRollDice, () -> {
                 try {
                     gameEngine.playTurn();
                     SoundManager.playMove();
 
-                    int postPosPlayer = activeMonster.getPosition();
-                    int spacesMoved = postPosPlayer - prePosPlayer;
-                    if (spacesMoved > 0 && spacesMoved <= 6) {
-                        log(activeMonster.getName() + " rolled a " + spacesMoved + ".");
+                    // --- DETECTIVE WORK: REVERSE ENGINEER THE DICE ROLL ---
+                    int finalPos = activeMonster.getPosition();
+                    int energyDiff = activeMonster.getEnergy() - preEnergyPlayer;
+                    int roll = -1;
+                    Cell landedCell = null;
+
+                    // Check cells 1 to 6 spaces ahead to find where they landed
+                    for (int r = 1; r <= 6; r++) {
+                        int targetPos = (prePosPlayer + r) % 100;
+                        int row = targetPos / 10;
+                        int col = targetPos % 10;
+                        if (row % 2 == 1) col = 9 - col;
+                        Cell cell = gameEngine.getBoard().getBoardCells()[row][col];
+
+                        if (finalPos == targetPos) { // Normal landing
+                            roll = r; landedCell = cell; break;
+                        }
                     }
 
-                    // WAIT FOR THE VISUAL WALK TO FINISH BEFORE SHOWING POPUPS
-                    updateUI(() -> {
-                        // --- 3. COMPARE STATE FOR SOUNDS & VISUALS ---
-                        StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
+                    // If they teleported (Sock, Belt, or Card), find which one caused it
+                    if (roll == -1) {
+                        for (int r = 1; r <= 6; r++) {
+                            int targetPos = (prePosPlayer + r) % 100;
+                            int row = targetPos / 10;
+                            int col = targetPos % 10;
+                            if (row % 2 == 1) col = 9 - col;
+                            Cell cell = gameEngine.getBoard().getBoardCells()[row][col];
 
-                        // EVENT: Damage/Energy Loss
-                        if (activeMonster.getEnergy() < preEnergyPlayer) {
+                            if (cell instanceof ContaminationSock && energyDiff < 0 && finalPos < prePosPlayer) {
+                                roll = r; landedCell = cell; break;
+                            }
+                            if (cell instanceof game.engine.cells.ConveyorBelt && finalPos > targetPos) {
+                                roll = r; landedCell = cell; break;
+                            }
+                            if (cell instanceof game.engine.cells.CardCell) {
+                                roll = r; landedCell = cell; break;
+                            }
+                        }
+                    }
+
+                    // Fallback just in case
+                    if (roll == -1) roll = Math.max(1, finalPos - prePosPlayer);
+
+                    // --- PRINT LOGS ---
+                    log("=================================");
+                    log("🎲 " + activeMonster.getName() + " rolled a " + roll + ".");
+
+                    // WAIT FOR THE VISUAL WALK TO FINISH BEFORE SHOWING POPUPS
+                    final Cell finalLandedCell = landedCell; // For lambda
+                    final int finalRoll = roll;
+                    updateUI(() -> {
+
+                        // --- LOG CELL INTERACTIONS ---
+                        if (finalLandedCell instanceof game.engine.cells.CardCell) {
+                            log("🃏 Landed on a Mystery Card!");
+                            log("   -> Drew [" + topCard.getName() + "]: " + topCard.getDescription());
+                            SoundManager.playCard();
+                            AnimationManager.showCardPopup(rootPane, topCard.getName(), topCard.getDescription());
+                        }
+                        else if (finalLandedCell instanceof ContaminationSock) {
+                            log("🧦 Oh no! Stepped on a Contamination Sock!");
+                            SoundManager.playLose();
+                        }
+                        else if (finalLandedCell instanceof game.engine.cells.ConveyorBelt) {
+                            log("⚙️ Swoosh! Rode a Conveyor Belt!");
+                        }
+                        else if (finalLandedCell instanceof game.engine.cells.DoorCell) {
+                            log("🚪 Interacted with a Door Cell.");
+                        }
+                        else if (finalLandedCell instanceof game.engine.cells.MonsterCell) {
+                            log("👾 Encountered a Stationed Monster!");
+                        }
+
+                        if (finalPos != (prePosPlayer + finalRoll) % 100) {
+                            log("   -> Shifted to final cell: " + finalPos);
+                        }
+
+                        // --- LOG ENERGY CHANGES ---
+                        if (energyDiff > 0) log("   -> 🟢 Gained " + energyDiff + " Energy.");
+                        else if (energyDiff < 0) log("   -> 🔴 Lost " + Math.abs(energyDiff) + " Energy.");
+
+                        int oppEnergyDiff = opponent.getEnergy() - preEnergyOpponent;
+                        if (oppEnergyDiff < 0) log("   -> ⚔️ " + opponent.getName() + " was hit and lost " + Math.abs(oppEnergyDiff) + " Energy!");
+
+                        // --- LOG STATUS EFFECTS ---
+                        if (preShieldPlayer && !activeMonster.isShielded()) {
+                            log("   -> 🛡️ Shield absorbed a negative impact!");
+                        }
+                        if (!preRolePlayer.equals(activeMonster.getRole())) {
+                            log("   -> 💫 " + activeMonster.getName() + " became CONFUSED!");
+                        }
+
+                        log("=================================");
+
+                        // --- EVENT: Damage Visual Shake ---
+                        if (energyDiff < 0) {
+                            StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
                             SoundManager.playDamage();
-                            int lost = preEnergyPlayer - activeMonster.getEnergy();
-                            NotificationManager.showDamage(playerCell, lost);
+                            NotificationManager.showDamage(playerCell, Math.abs(energyDiff));
                             AnimationManager.animateDamageShake(playerCell);
                         }
 
-                        // EVENT: Card Drawn
-                        if (gameEngine.getBoard().getBoardCells()[activeMonster.getPosition() / 10][activeMonster.getPosition() % 10] instanceof game.engine.cells.CardCell) {
-                            SoundManager.playCard();
-                            AnimationManager.showCardPopup(rootPane, "MYSTERY CARD", "A card effect has been triggered!");
-                        }
-
-                        // Check for winner sound
+                        // --- Check for winner sound ---
                         if (gameEngine.getWinner() != null) {
                             SoundManager.playVictory();
                         }
 
-                        // FINALIZE TURN
+                        // --- FINALIZE TURN ---
                         checkWinCondition();
                         if (gameEngine.getWinner() == null) {
                             btnRollDice.setDisable(false);
@@ -141,7 +226,7 @@ public class GameController {
                 } catch (InvalidMoveException ex) {
                     SoundManager.playError();
                     showError("Invalid Move", ex.getMessage());
-                    btnRollDice.setDisable(false); // Re-enable if error
+                    btnRollDice.setDisable(false);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }

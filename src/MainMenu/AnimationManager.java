@@ -152,57 +152,94 @@ public class AnimationManager {
     /**
      * CARD DRAW POPUP: Glassmorphism Screen Overlay
      */
+    /**
+     * CARD DRAW POPUP: Interactive Flip (Click to Reveal, Click to Dismiss)
+     */
     public static void showCardPopup(StackPane rootPane, String cardName, String cardEffect) {
         // 1. Create the Dark Overlay
         StackPane overlay = new StackPane();
         overlay.setStyle("-fx-background-color: rgba(0,0,0,0.7);");
 
-        // 2. Create the Card Visual
+        // 2. Create the Card Container
         javafx.scene.layout.VBox cardVisual = new javafx.scene.layout.VBox(20);
         cardVisual.setAlignment(javafx.geometry.Pos.CENTER);
         cardVisual.setMaxSize(300, 450);
         cardVisual.setStyle(
-                "-fx-background-color: rgba(138, 43, 226, 0.2); " +
-                        "-fx-border-color: #ff00ff; -fx-border-width: 3; -fx-border-radius: 15; " +
+                "-fx-background-color: #2c3e50; " +
+                        "-fx-border-color: #ff00ff; -fx-border-width: 5; -fx-border-radius: 15; " +
                         "-fx-background-radius: 15; -fx-padding: 30;"
         );
         cardVisual.setEffect(new DropShadow(30, Color.MAGENTA));
 
-        // 3. Card Content
+        // 3. Create the "Back" of the card (Visible first)
+        Label backLabel = new Label("?");
+        backLabel.setStyle("-fx-font-size: 100px; -fx-text-fill: white; -fx-font-weight: bold;");
+        Label clickHint = new Label("(Click to Reveal)");
+        clickHint.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+
+        javafx.scene.layout.VBox backContent = new javafx.scene.layout.VBox(10, backLabel, clickHint);
+        backContent.setAlignment(javafx.geometry.Pos.CENTER);
+        cardVisual.getChildren().add(backContent);
+
+        // 4. Create the "Front" Content (Hidden initially)
+        javafx.scene.layout.VBox frontContent = new javafx.scene.layout.VBox(20);
+        frontContent.setAlignment(javafx.geometry.Pos.CENTER);
+
         Label title = new Label("CARD DRAWN!");
         title.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 24px; -fx-font-weight: bold;");
 
         Label name = new Label(cardName);
-        name.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+        name.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 26px; -fx-font-weight: bold;");
 
         Label effect = new Label(cardEffect);
-        effect.setStyle("-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 16px;");
+        effect.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         effect.setWrapText(true);
         effect.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
 
-        // Click anywhere to dismiss
-        Label hint = new Label("(Click anywhere to continue)");
-        hint.setStyle("-fx-text-fill: gray; -fx-font-size: 12px;");
+        Label closeHint = new Label("(Click to Continue)");
+        closeHint.setStyle("-fx-text-fill: gray; -fx-font-size: 12px;");
 
-        cardVisual.getChildren().addAll(title, name, effect, hint);
+        frontContent.getChildren().addAll(title, name, effect, closeHint);
+
+        // 5. Add to Screen
         overlay.getChildren().add(cardVisual);
-
-        // 4. Animation In
         rootPane.getChildren().add(overlay);
-        cardVisual.setScaleX(0);
-        cardVisual.setScaleY(0);
 
-        ScaleTransition popIn = new ScaleTransition(Duration.millis(400), cardVisual);
-        popIn.setToX(1.0); popIn.setToY(1.0);
-        popIn.setInterpolator(javafx.animation.Interpolator.SPLINE(0.25, 0.1, 0.25, 1.5));
-        popIn.play();
+        // 6. Interactive Flip State Machine
+        final boolean[] isRevealed = {false};
 
-        // 5. Dismiss Logic
-        overlay.setOnMouseClicked(e -> {
-            ScaleTransition popOut = new ScaleTransition(Duration.millis(200), cardVisual);
-            popOut.setToX(0); popOut.setToY(0);
-            popOut.setOnFinished(event -> rootPane.getChildren().remove(overlay));
-            popOut.play();
+        cardVisual.setOnMouseClicked(e -> {
+            if (!isRevealed[0]) {
+                // --- FIRST CLICK: REVEAL ---
+                isRevealed[0] = true;
+
+                // Shrink card horizontally to 0 (gives the illusion of turning sideways)
+                ScaleTransition flipToEdge = new ScaleTransition(Duration.millis(250), cardVisual);
+                flipToEdge.setToX(0);
+
+                flipToEdge.setOnFinished(ev -> {
+                    // Swap the "?" for the actual card text while it's invisible
+                    cardVisual.getChildren().clear();
+                    cardVisual.getChildren().add(frontContent);
+
+                    // Expand card back to full width
+                    ScaleTransition flipToFront = new ScaleTransition(Duration.millis(250), cardVisual);
+                    flipToFront.setToX(1);
+                    flipToFront.play();
+                });
+
+                flipToEdge.play();
+            } else {
+                // --- SECOND CLICK: DISMISS ---
+                ScaleTransition popOut = new ScaleTransition(Duration.millis(200), cardVisual);
+                popOut.setToX(0);
+                popOut.setToY(0);
+                popOut.setOnFinished(event -> rootPane.getChildren().remove(overlay));
+                popOut.play();
+            }
         });
+
+        // Block clicks on the background overlay so they *must* click the card
+        overlay.setOnMouseClicked(e -> e.consume());
     }
 }

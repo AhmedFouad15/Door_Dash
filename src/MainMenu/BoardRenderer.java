@@ -79,14 +79,17 @@ public class BoardRenderer {
 
         int targetPos = monster.getPosition();
 
-        // If it's the start of the game or the monster didn't move, just place it
-        if (lastPos == -1 || lastPos == targetPos) {
+        // Detect if they looped around the board (e.g., from 98 back to 2) or used a Start Over Card
+        boolean isWrapAround = (lastPos > 80 && targetPos < 20);
+
+        // If it's the start, didn't move, OR wrapped around -> teleport instantly without animation
+        if (lastPos == -1 || lastPos == targetPos || isWrapAround) {
             StackPane targetCell = getCellVisual(targetPos);
             targetCell.getChildren().removeIf(n -> tag.equals(n.getId()));
             targetCell.getChildren().add(newVisual);
             if (onComplete != null) onComplete.run();
         } else {
-            // Start the recursive step-by-step walk
+            // Otherwise, do the smooth step-by-step walk
             moveStepByStep(newVisual, lastPos, targetPos, tag, onComplete);
         }
     }
