@@ -13,6 +13,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
+import java.util.Map;
+
 public class CellFactory {
 
     // --- STEP 1: PRE-LOAD IMAGES (STATIC CACHING) ---
@@ -22,6 +24,21 @@ public class CellFactory {
     private static final Image SOCK_IMAGE = loadImage("/MainMenu/assets/images/sock_icon.png");
     private static final Image DOOR_SCARER_IMAGE = loadImage("/MainMenu/assets/images/door_scarer.png");
     private static final Image DOOR_LAUGHER_IMAGE = loadImage("/MainMenu/assets/images/door_laugher.png");
+    private static final Image RANDALL_IMAGE = loadImage("/MainMenu/assets/images/randall.png");
+    private static final Image CELIA_IMAGE   = loadImage("/MainMenu/assets/images/celia.png");
+    private static final Image HENRY_IMAGE   = loadImage("/MainMenu/assets/images/Henry.png");
+    private static final Image ROZ_IMAGE     = loadImage("/MainMenu/assets/images/roz.png");
+    private static final Image FUNGUS_IMAGE  = loadImage("/MainMenu/assets/images/fungus.png");
+    private static final Image YETI_IMAGE    = loadImage("/MainMenu/assets/images/yeti.png");
+
+    private static final Map<Integer, Image> MONSTER_IMAGES = Map.of(
+            2, RANDALL_IMAGE,
+            18, CELIA_IMAGE,
+            34, HENRY_IMAGE,
+            54, ROZ_IMAGE,
+            82, FUNGUS_IMAGE,
+            88, YETI_IMAGE
+    );
 
     public static StackPane createVisualCell(int index, Cell cellBackend) {
         StackPane visualCell = new StackPane();
@@ -38,6 +55,8 @@ public class CellFactory {
             bgColor = "rgba(0, 0, 255, 0.3)";
             borderColor = "#0000ff";
             glowColor = Color.BLUE;
+
+            cellIcon = MONSTER_IMAGES.get(index);
         }
         else if (cellBackend instanceof CardCell) {
             bgColor = "rgba(255, 0, 0, 0.3)";

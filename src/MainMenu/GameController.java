@@ -1,5 +1,6 @@
 package MainMenu;
 
+import game.engine.Constants;
 import game.engine.Game;
 import game.engine.Role;
 import game.engine.exceptions.InvalidMoveException;
@@ -24,6 +25,7 @@ import javafx.animation.Animation;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.net.URL;
@@ -78,6 +80,7 @@ public class GameController {
 
     private void setupActions() {
         btnRollDice.setOnAction(e -> {
+            // 1. Initial Checks & Disable button so player can't double-click
             if (gameEngine == null) return;
             btnRollDice.setDisable(true);
 
@@ -127,7 +130,7 @@ public class GameController {
                         AnimationManager.showCardPopup(rootPane, "MYSTERY CARD", "A card effect has been triggered!");
                     }
 
-                    // Check for winner
+                    // Check for winner sound
                     if (gameEngine.getWinner() != null) {
                         SoundManager.playVictory(); // Trigger sound
                     }
@@ -139,9 +142,14 @@ public class GameController {
                     ex.printStackTrace();
                 }
 
+                // --- 4. END OF TURN UPDATES ---
                 updateUI();
                 checkWinCondition();
-                btnRollDice.setDisable(false);
+
+                // ONLY re-enable the dice if the game is still going!
+                if (gameEngine.getWinner() == null) {
+                    btnRollDice.setDisable(false);
+                }
             });
         });
 
@@ -193,15 +201,7 @@ public class GameController {
         boardRenderer.updateMonsterPositions(player, opponent, current);
     }
 
-    private void checkWinCondition() {
-        Monster winner = gameEngine.getWinner();
-        if (winner != null) {
-            log("GAME OVER! " + winner.getName() + " WINS!");
-            showError("VICTORY!", winner.getName() + " has reached Boo's Door!");
-            btnRollDice.setDisable(true);
-            btnPowerup.setDisable(true);
-        }
-    }
+
 
     private void log(String message) {
         if (actionLog != null) actionLog.appendText(message + "\n");
@@ -259,5 +259,24 @@ public class GameController {
         }
     }
 
+    // Inside GameController.java
+
+    private void checkWinCondition() {
+        Monster winner = gameEngine.getWinner();
+
+        if (winner != null) {
+            log("GAME OVER! " + winner.getName() + " WINS!");
+
+            // Lock the game controls
+            btnRollDice.setDisable(true);
+            btnPowerup.setDisable(true);
+
+            // FORCE the new window onto the main JavaFX Application Thread safely
+            Platform.runLater(() -> {
+                Stage currentStage = (Stage) boardGrid.getScene().getWindow();
+                WinWindow.display(winner, currentStage);
+            });
+        }
+    }
 
 }
