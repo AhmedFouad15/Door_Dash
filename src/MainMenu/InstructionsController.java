@@ -46,18 +46,18 @@ public class InstructionsController {
 
         // Load Sound
         try {
-            URL musicUrl = getClass().getResource("assets/audio/background2.mp3");
+            URL musicUrl = getClass().getResource("/MainMenu/assets/audio/background2.mp3");
             Media bgMedia = new Media(musicUrl.toExternalForm());
             backgroundMusicPlayer = new MediaPlayer(bgMedia);
             backgroundMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
             backgroundMusicPlayer.setVolume(0.3);
             backgroundMusicPlayer.play();
 
-            URL hoverUrl = getClass().getResource("assets/audio/ui.mp3");
+            URL hoverUrl = getClass().getResource("/MainMenu/assets/audio/ui.mp3");
             hoverSound = new AudioClip(hoverUrl.toExternalForm());
             hoverSound.setVolume(0.5);
 
-            URL clickUrl = getClass().getResource("assets/audio/click.wav");
+            URL clickUrl = getClass().getResource("/MainMenu/assets/audio/click.wav");
             clickSound = new AudioClip(clickUrl.toExternalForm());
             clickSound.setVolume(0.8);
         } catch (Exception e) {

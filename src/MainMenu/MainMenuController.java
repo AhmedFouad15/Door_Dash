@@ -118,7 +118,7 @@ public class MainMenuController {
 
         try {
             // Load background music (loops forever)
-            URL musicUrl = getClass().getResource("assets/audio/background2.mp3");
+            URL musicUrl = getClass().getResource("/MainMenu/assets/audio/background2.mp3");
             Media bgMedia = new Media(musicUrl.toExternalForm());
             backgroundMusicPlayer = new MediaPlayer(bgMedia);
             backgroundMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
@@ -126,11 +126,11 @@ public class MainMenuController {
             backgroundMusicPlayer.play();
 
             // Load UI sounds
-            URL hoverUrl = getClass().getResource("assets/audio/ui.mp3");
+            URL hoverUrl = getClass().getResource("/MainMenu/assets/audio/ui.mp3");
             hoverSound = new AudioClip(hoverUrl.toExternalForm());
             hoverSound.setVolume(0.5);
 
-            URL clickUrl = getClass().getResource("assets/audio/click.wav");
+            URL clickUrl = getClass().getResource("/MainMenu/assets/audio/click.wav");
             clickSound = new AudioClip(clickUrl.toExternalForm());
             clickSound.setVolume(0.8);
 
