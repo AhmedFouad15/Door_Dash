@@ -24,6 +24,9 @@ import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
 import javafx.animation.Animation;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
@@ -46,6 +49,7 @@ public class GameController {
     @FXML private Label lblPlayerStats;
     @FXML private Label lblOpponentStats;
     @FXML private TextArea actionLog;
+    private MediaPlayer backgroundMusicPlayer;
 
     @FXML private Button btnRollDice;
     @FXML private Button btnPowerup;
@@ -253,7 +257,22 @@ public class GameController {
                 // Ensure UI sound plays before leaving
                 SoundManager.playMove();
                 SceneManager.switchScene("MainMenu.fxml");
+                stopAudio();
             });
+        }
+
+        try {
+            // Load background music (loops forever)
+            URL musicUrl = getClass().getResource("/MainMenu/assets/audio/background2.mp3");
+            Media bgMedia = new Media(musicUrl.toExternalForm());
+            backgroundMusicPlayer = new MediaPlayer(bgMedia);
+            backgroundMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            backgroundMusicPlayer.setVolume(0.3); // 30% volume so it's not too loud
+            backgroundMusicPlayer.play();
+
+
+        } catch (Exception e) {
+            System.out.println("Could not load audio files! Check the folder/names.");
         }
     }
 
@@ -415,6 +434,10 @@ public class GameController {
         );
 
         displayLabel.setText(stats);
+    }
+
+    public void stopAudio() {
+        if (backgroundMusicPlayer != null) backgroundMusicPlayer.stop();
     }
 
 }
