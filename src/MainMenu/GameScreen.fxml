@@ -57,6 +57,7 @@
             <right>
                 <VBox prefHeight="635.0" prefWidth="215.0" spacing="10.0" style="-fx-padding: 20;">
                     <children>
+                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="ACTION LOG" />
                         <TextArea fx:id="actionLog" editable="false" prefHeight="500.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
                         <Button fx:id="btnPowerup" mnemonicParsing="false" prefHeight="136.0" prefWidth="175.0" styleClass="button" text="     USE&#10;POWERUP" />
                     </children>
@@ -70,9 +71,6 @@
                <center>
                         <Label fx:id="lblTurnInfo" style="-fx-font-size: 32px;" styleClass="subtitle-text" text="PLAYER TURN" BorderPane.alignment="CENTER" />
                </center>
-               <right>
-                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="ACTION LOG" BorderPane.alignment="CENTER" />
-               </right>
             </BorderPane>
          </top>
         </BorderPane>

@@ -155,7 +155,10 @@ public class AnimationManager {
     /**
      * CARD DRAW POPUP: Interactive Flip (Click to Reveal, Click to Dismiss)
      */
-    public static void showCardPopup(StackPane rootPane, String cardName, String cardEffect) {
+    /**
+     * CARD DRAW POPUP: Interactive Flip (Click to Reveal, Click to Dismiss)
+     */
+    public static void showCardPopup(StackPane rootPane, String cardName, String cardEffect, Runnable onClose) {
         // 1. Create the Dark Overlay
         StackPane overlay = new StackPane();
         overlay.setStyle("-fx-background-color: rgba(0,0,0,0.7);");
@@ -169,12 +172,12 @@ public class AnimationManager {
                         "-fx-border-color: #ff00ff; -fx-border-width: 5; -fx-border-radius: 15; " +
                         "-fx-background-radius: 15; -fx-padding: 30;"
         );
-        cardVisual.setEffect(new DropShadow(30, Color.MAGENTA));
+        cardVisual.setEffect(new javafx.scene.effect.DropShadow(30, javafx.scene.paint.Color.MAGENTA));
 
         // 3. Create the "Back" of the card (Visible first)
-        Label backLabel = new Label("?");
+        javafx.scene.control.Label backLabel = new javafx.scene.control.Label("?");
         backLabel.setStyle("-fx-font-size: 100px; -fx-text-fill: white; -fx-font-weight: bold;");
-        Label clickHint = new Label("(Click to Reveal)");
+        javafx.scene.control.Label clickHint = new javafx.scene.control.Label("(Click to Reveal)");
         clickHint.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
 
         javafx.scene.layout.VBox backContent = new javafx.scene.layout.VBox(10, backLabel, clickHint);
@@ -185,18 +188,18 @@ public class AnimationManager {
         javafx.scene.layout.VBox frontContent = new javafx.scene.layout.VBox(20);
         frontContent.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Label title = new Label("CARD DRAWN!");
+        javafx.scene.control.Label title = new javafx.scene.control.Label("CARD DRAWN!");
         title.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 24px; -fx-font-weight: bold;");
 
-        Label name = new Label(cardName);
+        javafx.scene.control.Label name = new javafx.scene.control.Label(cardName);
         name.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 26px; -fx-font-weight: bold;");
 
-        Label effect = new Label(cardEffect);
+        javafx.scene.control.Label effect = new javafx.scene.control.Label(cardEffect);
         effect.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         effect.setWrapText(true);
         effect.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
 
-        Label closeHint = new Label("(Click to Continue)");
+        javafx.scene.control.Label closeHint = new javafx.scene.control.Label("(Click to Continue)");
         closeHint.setStyle("-fx-text-fill: gray; -fx-font-size: 12px;");
 
         frontContent.getChildren().addAll(title, name, effect, closeHint);
@@ -213,17 +216,14 @@ public class AnimationManager {
                 // --- FIRST CLICK: REVEAL ---
                 isRevealed[0] = true;
 
-                // Shrink card horizontally to 0 (gives the illusion of turning sideways)
-                ScaleTransition flipToEdge = new ScaleTransition(Duration.millis(250), cardVisual);
+                javafx.animation.ScaleTransition flipToEdge = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(250), cardVisual);
                 flipToEdge.setToX(0);
 
                 flipToEdge.setOnFinished(ev -> {
-                    // Swap the "?" for the actual card text while it's invisible
                     cardVisual.getChildren().clear();
                     cardVisual.getChildren().add(frontContent);
 
-                    // Expand card back to full width
-                    ScaleTransition flipToFront = new ScaleTransition(Duration.millis(250), cardVisual);
+                    javafx.animation.ScaleTransition flipToFront = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(250), cardVisual);
                     flipToFront.setToX(1);
                     flipToFront.play();
                 });
@@ -231,10 +231,17 @@ public class AnimationManager {
                 flipToEdge.play();
             } else {
                 // --- SECOND CLICK: DISMISS ---
-                ScaleTransition popOut = new ScaleTransition(Duration.millis(200), cardVisual);
+                javafx.animation.ScaleTransition popOut = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(200), cardVisual);
                 popOut.setToX(0);
                 popOut.setToY(0);
-                popOut.setOnFinished(event -> rootPane.getChildren().remove(overlay));
+                popOut.setOnFinished(event -> {
+                    rootPane.getChildren().remove(overlay);
+
+                    // --- THIS IS THE MAGIC 4TH ARGUMENT THAT UNFREEZES THE GAME! ---
+                    if (onClose != null) {
+                        onClose.run();
+                    }
+                });
                 popOut.play();
             }
         });
