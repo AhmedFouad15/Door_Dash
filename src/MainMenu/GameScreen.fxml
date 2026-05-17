@@ -7,10 +7,10 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.media.MediaView?>
 
 <StackPane fx:id="rootPane" prefHeight="800.0" prefWidth="1200.0" stylesheets="@menu.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainMenu.GameController">
     <children>
@@ -23,18 +23,10 @@
         <Pane fx:id="particlePane" mouseTransparent="true" />
 
         <BorderPane>
-            <top>
-                <HBox alignment="CENTER" prefHeight="80.0" BorderPane.alignment="CENTER">
-                    <children>
-                        <Label fx:id="lblTurnInfo" style="-fx-font-size: 32px;" styleClass="subtitle-text" text="PLAYER TURN" />
-                    </children>
-                </HBox>
-            </top>
 
             <left>
-                <VBox fx:id="playerStatsBox" prefWidth="250.0" spacing="20.0" style="-fx-padding: 20;">
+                <VBox fx:id="playerStatsBox" prefHeight="585.0" prefWidth="280.0" spacing="20.0" style="-fx-padding: 20;">
                     <children>
-                  <Button fx:id="HomeMenu" mnemonicParsing="false" prefHeight="30.0" prefWidth="140.0" styleClass="button" text="Menu" />
                         <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="MONSTER STATS" />
 
                         <Pane prefHeight="215.0" prefWidth="210.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
@@ -48,35 +40,41 @@
                                 <Label fx:id="lblOpponentStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Opponent Stats Here" />
                             </children>
                         </Pane>
+                        <Button fx:id="btnRollDice" mnemonicParsing="false" prefHeight="50.0" prefWidth="260.0" styleClass="button" text="ROLL DICE" />
+                  <MediaView fx:id="diceVideo" fitHeight="150.0" fitWidth="300.0" />
                     </children>
                 </VBox>
             </left>
 
             <center>
-                <StackPane style="-fx-border-color: rgba(0,212,255,0.3); -fx-border-width: 2; -fx-border-radius: 20; -fx-padding: 10; -fx-margin: 10;">
+                <StackPane prefHeight="585.0" prefWidth="687.0" style="-fx-border-color: rgba(0,212,255,0.3); -fx-border-width: 2; -fx-border-radius: 20; -fx-padding: 10; -fx-margin: 10;">
                     <children>
-                        <GridPane fx:id="boardGrid" alignment="CENTER" hgap="5.0" prefHeight="608.0" prefWidth="676.0" vgap="5.0" />
+                        <GridPane fx:id="boardGrid" alignment="CENTER" hgap="5.0" prefHeight="561.0" prefWidth="621.0" vgap="5.0" />
                     </children>
                 </StackPane>
             </center>
 
             <right>
-                <VBox prefWidth="250.0" spacing="10.0" style="-fx-padding: 20;">
+                <VBox prefHeight="635.0" prefWidth="215.0" spacing="10.0" style="-fx-padding: 20;">
                     <children>
-                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="ACTION LOG" />
                         <TextArea fx:id="actionLog" editable="false" prefHeight="500.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
+                        <Button fx:id="btnPowerup" mnemonicParsing="false" prefHeight="136.0" prefWidth="175.0" styleClass="button" text="     USE&#10;POWERUP" />
                     </children>
                 </VBox>
             </right>
-
-            <bottom>
-                <HBox alignment="CENTER" prefHeight="100.0" spacing="30.0" BorderPane.alignment="CENTER">
-                    <children>
-                        <Button fx:id="btnRollDice" mnemonicParsing="false" prefHeight="50.0" prefWidth="260.0" styleClass="button" text="ROLL DICE &amp; MOVE" />
-                        <Button fx:id="btnPowerup" mnemonicParsing="false" prefHeight="50.0" prefWidth="260.0" styleClass="button" text="USE POWERUP" />
-                    </children>
-                </HBox>
-            </bottom>
+         <top>
+            <BorderPane prefHeight="65.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
+               <left>
+                        <Button fx:id="HomeMenu" mnemonicParsing="false" prefHeight="30.0" prefWidth="140.0" styleClass="button" text="Menu" BorderPane.alignment="CENTER" />
+               </left>
+               <center>
+                        <Label fx:id="lblTurnInfo" style="-fx-font-size: 32px;" styleClass="subtitle-text" text="PLAYER TURN" BorderPane.alignment="CENTER" />
+               </center>
+               <right>
+                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="ACTION LOG" BorderPane.alignment="CENTER" />
+               </right>
+            </BorderPane>
+         </top>
         </BorderPane>
     </children>
 </StackPane>
