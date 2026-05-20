@@ -7,7 +7,7 @@ import game.engine.cells.Cell;
 import game.engine.cells.ContaminationSock;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.exceptions.OutOfEnergyException;
-import game.engine.monsters.Monster;
+import game.engine.monsters.*;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -203,6 +203,21 @@ public class GameController {
                     ex.printStackTrace();
                 }
             });
+            if(activeMonster instanceof Dasher){
+                System.out.println("Dasher");
+            }
+            else if(activeMonster instanceof Dynamo){
+                System.out.println("Dynamo");
+            }
+            else if(activeMonster instanceof MultiTasker){
+                System.out.println("MultiTasker");
+            }
+            else if(activeMonster instanceof Schemer){
+                System.out.println("Schemer");
+            }
+            else{
+                System.out.println("Unknown Monster");
+            }
         });
 
         btnPowerup.setOnAction(e -> {
@@ -415,13 +430,22 @@ public class GameController {
                             "-fx-text-fill: white; " +
                             "-fx-font-weight: bold; " +
                             "-fx-font-size: 13px; " +
-                            "-fx-background-radius: 0; " + // Squared button to match card aesthetic
+                            "-fx-background-radius: 0; " + // <--- This removes the rounded background corners
+                            "-fx-border-radius: 0; " +     // <--- This ensures the border is a sharp square
+                            "-fx-border-color: transparent; " + // Keeps it clean within the square
                             "-fx-cursor: hand;"
             );
 
             // Visual Hover state changes
-            btnDismiss.setOnMouseEntered(ev -> btnDismiss.setStyle("-fx-background-color: #ff3366; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 0; -fx-cursor: hand;"));
-            btnDismiss.setOnMouseExited(ev -> btnDismiss.setStyle("-fx-background-color: #ff003c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 0; -fx-cursor: hand;"));
+            btnDismiss.setOnMouseEntered(ev -> btnDismiss.setStyle(
+                    "-fx-background-color: #ff3366; -fx-text-fill: white; -fx-font-weight: bold; " +
+                            "-fx-font-size: 13px; -fx-background-radius: 0; -fx-border-radius: 0; -fx-cursor: hand;"
+            ));
+
+            btnDismiss.setOnMouseExited(ev -> btnDismiss.setStyle(
+                    "-fx-background-color: #ff003c; -fx-text-fill: white; -fx-font-weight: bold; " +
+                            "-fx-font-size: 13px; -fx-background-radius: 0; -fx-border-radius: 0; -fx-cursor: hand;"
+            ));
 
             // 6. Assemble layout structures
             squareCard.getChildren().addAll(lblTitle, lblMessage, btnDismiss);
