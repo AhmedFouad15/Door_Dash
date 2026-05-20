@@ -18,7 +18,7 @@ import java.util.Objects;
 
 public class WinWindow {
 
-    public static void display(Monster winner, Stage primaryStage) {
+    public static void display(Monster winner, Monster player, Monster opponent, Stage primaryStage) {
         Stage window = new Stage();
         // Blocks interaction with the game board until they click a button
         window.initModality(Modality.APPLICATION_MODAL);
@@ -41,6 +41,14 @@ public class WinWindow {
 
         Label winnerNameLabel = new Label(winner.getName() + " (" + winner.getRole() + ") takes the win!");
         winnerNameLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: white;");
+
+        Label finalEnergyLabel = new Label(
+                "Final Energy\n" +
+                        player.getName() + " (" + player.getRole() + "): " + player.getEnergy() + "\n" +
+                        opponent.getName() + " (" + opponent.getRole() + "): " + opponent.getEnergy()
+        );
+        finalEnergyLabel.setStyle("-fx-font-size: 15px; -fx-text-fill: white; -fx-alignment: center;");
+        finalEnergyLabel.setWrapText(true);
 
         // 3. Winner Image (Using your tokens based on Role)
         ImageView winnerImage = new ImageView();
@@ -90,7 +98,7 @@ public class WinWindow {
         layout.setPadding(new Insets(30));
         layout.setAlignment(Pos.CENTER);
         layout.setStyle("-fx-background-color: #2b2b2b;"); // Dark background to make image/text pop
-        layout.getChildren().addAll(congratsLabel, winnerImage, winnerNameLabel, buttonLayout);
+        layout.getChildren().addAll(congratsLabel, winnerImage, winnerNameLabel, finalEnergyLabel, buttonLayout);
 
         Scene scene = new Scene(layout);
         window.setScene(scene);

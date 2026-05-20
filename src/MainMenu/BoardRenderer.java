@@ -49,6 +49,29 @@ public class BoardRenderer {
         }
     }
 
+    public void refreshBoard(Board backendBoard, Monster player, Monster opponent, Monster currentActive) {
+        renderInitialBoard(backendBoard);
+        lastPlayerPos = player.getPosition();
+        lastOpponentPos = opponent.getPosition();
+
+        StackPane playerCell = getCellVisual(player.getPosition());
+        StackPane opponentCell = getCellVisual(opponent.getPosition());
+
+        if (playerCell != null) {
+            playerCell.getChildren().removeIf(n -> "player_visual".equals(n.getId()));
+            StackPane playerVisual = MonsterRenderer.createMonsterVisual(player, player == currentActive);
+            playerVisual.setId("player_visual");
+            playerCell.getChildren().add(playerVisual);
+        }
+
+        if (opponentCell != null) {
+            opponentCell.getChildren().removeIf(n -> "opponent_visual".equals(n.getId()));
+            StackPane opponentVisual = MonsterRenderer.createMonsterVisual(opponent, opponent == currentActive);
+            opponentVisual.setId("opponent_visual");
+            opponentCell.getChildren().add(opponentVisual);
+        }
+    }
+
     public StackPane getCellVisual(int index) {
         return cellNodes.get(index);
     }

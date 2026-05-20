@@ -3,37 +3,47 @@ package MainMenu;
 import game.engine.Constants;
 import game.engine.Game;
 import game.engine.Role;
-import game.engine.cells.Cell;
-import game.engine.cells.ContaminationSock;
+import game.engine.cards.Card;
+import game.engine.cards.StartOverCard;
+import game.engine.cards.SwapperCard;
+import game.engine.cells.*;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.exceptions.OutOfEnergyException;
 import game.engine.monsters.*;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.effect.BlendMode;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.animation.TranslateTransition;
 import javafx.animation.Animation;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class GameController {
@@ -41,21 +51,24 @@ public class GameController {
     @FXML private StackPane rootPane;
     @FXML private ImageView bgImage;
     @FXML private Pane particlePane;
+    @FXML private Pane specialPathPane;
 
     @FXML private GridPane boardGrid;
     @FXML private Label lblTurnInfo;
     @FXML private VBox playerStatsBox;
     @FXML private Label lblPlayerStats;
     @FXML private Label lblOpponentStats;
+    @FXML private Label lblDeckStatus;
+    @FXML private Label lblStationedMonsters;
     @FXML private TextArea actionLog;
 
     @FXML private Button btnRollDice;
     @FXML private Button btnPowerup;
     @FXML private Button HomeMenu;
-    @FXML private MediaView diceVideo;
+    @FXML private Label diceFaceLabel;
 
     private MediaPlayer backgroundMusicPlayer;
-    private MediaPlayer diceMediaPlayer;
+    private PauseTransition specialPathRedrawDelay;
 
     // The Engines
     private Game gameEngine;
@@ -78,8 +91,10 @@ public class GameController {
 
         boardRenderer = new BoardRenderer(boardGrid);
         boardRenderer.renderInitialBoard(gameEngine.getBoard());
+        setupSpecialPathDrawing();
 
         setupActions();
+        setupSpaceShortcut();
         updateUI();
 
         try {
@@ -97,6 +112,21 @@ public class GameController {
         }
     }
 
+    private void setupSpaceShortcut() {
+        rootPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.setOnKeyPressed(event -> {
+                    if (event.getCode() == KeyCode.SPACE) {
+                        event.consume();
+                        if (!btnRollDice.isDisabled()) {
+                            btnRollDice.fire();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
     private void setupActions() {
         btnRollDice.setOnAction(e -> {
             if (gameEngine == null) return;
@@ -112,46 +142,55 @@ public class GameController {
             int prePosInactive = inactiveMonster.getPosition();
             int preEnergyInactive = inactiveMonster.getEnergy();
             boolean preShieldActive = activeMonster.isShielded();
+            boolean preShieldInactive = inactiveMonster.isShielded();
+            boolean preFrozenActive = activeMonster.isFrozen();
             game.engine.Role preRoleActive = activeMonster.getRole();
+            game.engine.Role preRoleInactive = inactiveMonster.getRole();
+            int preConfusionActive = activeMonster.getConfusionTurns();
+            int preConfusionInactive = inactiveMonster.getConfusionTurns();
+            int preMomentumTurns = activeMonster instanceof Dasher ? ((Dasher) activeMonster).getMomentumTurns() : 0;
+            int preFocusTurns = activeMonster instanceof MultiTasker ? ((MultiTasker) activeMonster).getNormalSpeedTurns() : 0;
+            Map<Monster, Integer> preStationedEnergy = snapshotStationedMonsterEnergy();
 
             // Safely peek at the top card
             if (game.engine.Board.getCards().isEmpty()) {
                 game.engine.Board.reloadCards();
             }
-            game.engine.cards.Card topCard = game.engine.Board.getCards().get(0);
+            Card topCard = game.engine.Board.getCards().get(0);
 
             AnimationManager.animateDiceRoll(btnRollDice, () -> {
                 try {
                     gameEngine.playTurn();
 
+                    if (preFrozenActive) {
+                        log("=================================");
+                        log(activeMonster.getName() + " was FROZEN and skipped the turn.");
+                        log("Freeze expired. Turn passed to " + gameEngine.getCurrent().getName() + ".");
+                        log("=================================");
+                        updateUI();
+                        btnRollDice.setDisable(false);
+                        return;
+                    }
+
                     // --- 2. DETECTIVE WORK: FIND EXACTLY WHERE THEY LANDED ---
                     int postPosActive = activeMonster.getPosition();
-                    int roll = -1;
+                    TurnGuess turnGuess = inferTurnGuess(activeMonster, inactiveMonster, prePosActive, prePosInactive, postPosActive, preMomentumTurns, preFocusTurns, topCard);
 
-                    for (int r = 1; r <= 6; r++) {
-                        if (postPosActive == (prePosActive + r) % 100) { roll = r; break; }
-                    }
-                    if (roll == -1) {
-                        for (int r = 1; r <= 6; r++) {
-                            Cell cell = getCellAt((prePosActive + r) % 100);
-                            if (cell instanceof ContaminationSock && postPosActive < (prePosActive + r) % 100) { roll = r; break; }
-                            if (cell instanceof game.engine.cells.ConveyorBelt && postPosActive > (prePosActive + r) % 100) { roll = r; break; }
-                            if (cell instanceof game.engine.cells.CardCell) { roll = r; break; }
-                        }
-                    }
-                    if (roll == -1) roll = Math.max(1, (postPosActive - prePosActive + 100) % 100);
-
-                    final int finalRoll = roll;
-                    final int landedPos = (prePosActive + finalRoll) % 100;
-                    final Cell landedCell = getCellAt(landedPos);
+                    final int finalRoll = turnGuess.roll;
+                    final int effectiveMove = turnGuess.effectiveMove;
+                    final int landedPos = turnGuess.landedPosition;
+                    final Cell landedCell = turnGuess.landedCell;
 
                     log("=================================");
                     log("🎲 " + activeMonster.getName() + " rolled a " + finalRoll + ".");
+                    if (effectiveMove != finalRoll) {
+                        log("   -> " + getMonsterType(activeMonster) + " movement changed that to " + effectiveMove + " cells.");
+                    }
 
                     // ==========================================
                     // 🎬 PLAY VIDEO FIRST!
                     // ==========================================
-                    playDiceVideo(finalRoll, () -> {
+                    playDiceFaceAnimation(finalRoll, () -> {
                         SoundManager.playMove(); // Play walking sound after video finishes
 
                         // ==========================================
@@ -183,13 +222,13 @@ public class GameController {
                                 AnimationManager.showCardPopup(rootPane, topCard.getName(), topCard.getDescription(), () -> {
                                     // Phase 2: Card Closed! Now let the REAL backend models animate their final jumps
                                     updateUI(() -> {
-                                        finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preRoleActive, landedCell, finalRoll);
+                                        finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
                                     });
                                 });
                             } else {
                                 // Not a card cell? Just update normally using the real models.
                                 updateUI(() -> {
-                                    finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preRoleActive, landedCell, finalRoll);
+                                    finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
                                 });
                             }
                         });
@@ -223,12 +262,18 @@ public class GameController {
         btnPowerup.setOnAction(e -> {
             if (gameEngine == null) return;
             try {
+                Monster current = gameEngine.getCurrent();
+                String powerupName = getMonsterPowerupName(current);
+                Map<Monster, Integer> preStationedEnergy = snapshotStationedMonsterEnergy();
                 gameEngine.usePowerup();
                 SoundManager.playCard();
                 log("=================================");
-                log("⚡ " + gameEngine.getCurrent().getName() + " ACTIVATED A POWER-UP!");
+                log("⚡ " + current.getName() + " activated " + powerupName + "!");
                 log("   -> Cost: 500 Energy.");
-                StackPane playerCell = boardRenderer.getCellVisual(gameEngine.getCurrent().getPosition());
+                log("   -> " + getMonsterPowerupStatus(current));
+                logStationedMonsterEnergyChanges(preStationedEnergy);
+                StackPane playerCell = boardRenderer.getCellVisual(current.getPosition());
+                AnimationManager.animatePowerupActivate(playerCell, powerupName);
                 AnimationManager.animateFloatingText(playerCell, "-500 ENERGY", false);
             } catch (OutOfEnergyException ex) {
                 SoundManager.playError();
@@ -250,39 +295,59 @@ public class GameController {
     // HELPER METHODS: TURN LOGIC & BOARD
     // =========================================
 
-    private void finalizeTurn(Monster activeMonster, Monster inactiveMonster, int prePosActive, int preEnergyActive, int prePosInactive, int preEnergyInactive, boolean preShieldActive, game.engine.Role preRoleActive, Cell landedCell, int roll) {
+    private void finalizeTurn(Monster activeMonster, Monster inactiveMonster, int prePosActive, int preEnergyActive,
+                              int prePosInactive, int preEnergyInactive, boolean preShieldActive, boolean preShieldInactive,
+                              game.engine.Role preRoleActive, game.engine.Role preRoleInactive, int preConfusionActive,
+                              int preConfusionInactive, Map<Monster, Integer> preStationedEnergy, Cell landedCell,
+                              int landedPos, int roll, int effectiveMove) {
 
         int finalPos = activeMonster.getPosition();
         int energyDiff = activeMonster.getEnergy() - preEnergyActive;
         int oppEnergyDiff = inactiveMonster.getEnergy() - preEnergyInactive;
 
+        log("   -> Landed on cell " + landedPos + " (" + getCellDisplayName(landedCell) + ").");
+
         if (landedCell instanceof ContaminationSock) {
             log("🧦 Oh no! Stepped on a Contamination Sock!");
             SoundManager.playLose();
-        } else if (landedCell instanceof game.engine.cells.ConveyorBelt) {
+        } else if (landedCell instanceof ConveyorBelt) {
             log("⚙️ Swoosh! Rode a Conveyor Belt!");
-        } else if (landedCell instanceof game.engine.cells.DoorCell) {
-            log("🚪 Interacted with a Door Cell.");
-        } else if (landedCell instanceof game.engine.cells.MonsterCell) {
-            log("👾 Encountered a Stationed Monster!");
+        } else if (landedCell instanceof DoorCell) {
+            DoorCell door = (DoorCell) landedCell;
+            log("🚪 Interacted with a " + door.getRole() + " Door worth " + door.getEnergy() + " energy.");
+            log("   -> Door is now " + (door.isActivated() ? "exhausted." : "still available."));
+        } else if (landedCell instanceof MonsterCell) {
+            MonsterCell monsterCell = (MonsterCell) landedCell;
+            log("👾 Encountered stationed monster " + monsterCell.getCellMonster().getName() + ".");
         }
 
-        if (finalPos != (prePosActive + roll) % 100) {
+        if (finalPos != landedPos) {
             log("   -> Shifted to final cell: " + finalPos);
         }
 
         if (energyDiff > 0) log("   -> 🟢 Gained " + energyDiff + " Energy.");
         else if (energyDiff < 0) log("   -> 🔴 Lost " + Math.abs(energyDiff) + " Energy.");
 
+        if (oppEnergyDiff > 0) log("   -> " + inactiveMonster.getName() + " gained " + oppEnergyDiff + " Energy.");
         if (oppEnergyDiff < 0) log("   -> ⚔️ " + inactiveMonster.getName() + " was hit and lost " + Math.abs(oppEnergyDiff) + " Energy!");
 
         if (preShieldActive && !activeMonster.isShielded()) {
             log("   -> 🛡️ Shield absorbed a negative impact!");
         }
-        if (!preRoleActive.equals(activeMonster.getRole())) {
-            log("   -> 💫 " + activeMonster.getName() + " became CONFUSED!");
+        if (preShieldInactive && !inactiveMonster.isShielded()) {
+            log("   -> 🛡️ " + inactiveMonster.getName() + "'s shield was consumed.");
         }
+        if (!preRoleActive.equals(activeMonster.getRole()) || activeMonster.getConfusionTurns() != preConfusionActive) {
+            log("   -> 💫 " + activeMonster.getName() + " confusion: " + getConfusionStatus(activeMonster));
+        }
+        if (!preRoleInactive.equals(inactiveMonster.getRole()) || inactiveMonster.getConfusionTurns() != preConfusionInactive) {
+            log("   -> 💫 " + inactiveMonster.getName() + " confusion: " + getConfusionStatus(inactiveMonster));
+        }
+        logStationedMonsterEnergyChanges(preStationedEnergy);
+        logPowerupDuration(activeMonster);
         log("=================================");
+
+        refreshBoardNow();
 
         if (energyDiff < 0) {
             StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
@@ -317,6 +382,264 @@ public class GameController {
         return gameEngine.getBoard().getBoardCells()[row][col];
     }
 
+    private TurnGuess inferTurnGuess(Monster activeMonster, Monster inactiveMonster, int prePosActive, int prePosInactive,
+                                     int finalPosActive, int preMomentumTurns, int preFocusTurns, Card topCard) {
+        TurnGuess fallback = null;
+
+        for (int r = 1; r <= 6; r++) {
+            int effectiveMove = getEffectiveMoveForRoll(activeMonster, r, preMomentumTurns, preFocusTurns);
+            int landedPos = normalizePosition(prePosActive + effectiveMove);
+            Cell landedCell = getCellAt(landedPos);
+            TurnGuess guess = new TurnGuess(r, effectiveMove, landedPos, landedCell);
+
+            if (fallback == null) {
+                fallback = guess;
+            }
+
+            if (matchesFinalPosition(guess, prePosActive, prePosInactive, finalPosActive, inactiveMonster, topCard)) {
+                return guess;
+            }
+        }
+
+        return fallback != null ? fallback : new TurnGuess(1, 1, normalizePosition(prePosActive + 1), getCellAt(normalizePosition(prePosActive + 1)));
+    }
+
+    private boolean matchesFinalPosition(TurnGuess guess, int prePosActive, int prePosInactive, int finalPosActive,
+                                         Monster inactiveMonster, Card topCard) {
+        if (guess.landedCell instanceof ConveyorBelt) {
+            return normalizePosition(guess.landedPosition + ((ConveyorBelt) guess.landedCell).getEffect()) == finalPosActive;
+        }
+
+        if (guess.landedCell instanceof ContaminationSock) {
+            return normalizePosition(guess.landedPosition + ((ContaminationSock) guess.landedCell).getEffect()) == finalPosActive;
+        }
+
+        if (guess.landedCell instanceof CardCell) {
+            if (topCard instanceof StartOverCard && !topCard.isLucky()) {
+                return finalPosActive == Constants.STARTING_POSITION;
+            }
+            if (topCard instanceof SwapperCard && guess.landedPosition < prePosInactive) {
+                return finalPosActive == prePosInactive;
+            }
+            return finalPosActive == guess.landedPosition;
+        }
+
+        return finalPosActive == guess.landedPosition;
+    }
+
+    private int getEffectiveMoveForRoll(Monster monster, int roll, int preMomentumTurns, int preFocusTurns) {
+        if (monster instanceof Dasher) {
+            return roll * (preMomentumTurns > 0 ? 3 : 2);
+        }
+
+        if (monster instanceof MultiTasker && preFocusTurns <= 0) {
+            return roll / 2;
+        }
+
+        return roll;
+    }
+
+    private int normalizePosition(int position) {
+        int normalized = position % Constants.BOARD_SIZE;
+        return normalized < 0 ? normalized + Constants.BOARD_SIZE : normalized;
+    }
+
+    private void refreshBoardNow() {
+        boardRenderer.refreshBoard(gameEngine.getBoard(), gameEngine.getPlayer(), gameEngine.getOpponent(), gameEngine.getCurrent());
+        requestSpecialPathRedraw();
+    }
+
+    private void setupSpecialPathDrawing() {
+        specialPathRedrawDelay = new PauseTransition(Duration.millis(70));
+        specialPathRedrawDelay.setOnFinished(event -> Platform.runLater(this::drawSpecialCellConnectionsFromBoard));
+
+        Platform.runLater(this::requestSpecialPathRedraw);
+        boardGrid.widthProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        boardGrid.heightProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        boardGrid.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        boardGrid.localToSceneTransformProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        specialPathPane.widthProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        specialPathPane.heightProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        rootPane.widthProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+        rootPane.heightProperty().addListener((obs, oldVal, newVal) -> requestSpecialPathRedraw());
+    }
+
+    private void requestSpecialPathRedraw() {
+        if (specialPathRedrawDelay == null) {
+            Platform.runLater(this::drawSpecialCellConnectionsFromBoard);
+            return;
+        }
+
+        specialPathRedrawDelay.playFromStart();
+    }
+
+    private void drawSpecialCellConnectionsFromBoard() {
+        drawSpecialCellConnections(
+                getTransportConnectionNodes(ConveyorBelt.class),
+                getTransportConnectionNodes(ContaminationSock.class)
+        );
+    }
+
+    private List<Node> getTransportConnectionNodes(Class<? extends TransportCell> transportType) {
+        List<Node> nodes = new ArrayList<>();
+
+        for (int index = 0; index < Constants.BOARD_SIZE; index++) {
+            Cell cell = getCellAt(index);
+            if (!transportType.isInstance(cell)) continue;
+
+            TransportCell transportCell = (TransportCell) cell;
+            int destination = normalizePosition(index + transportCell.getEffect());
+            StackPane sourceCell = boardRenderer.getCellVisual(index);
+            StackPane destinationCell = boardRenderer.getCellVisual(destination);
+
+            if (sourceCell != null && destinationCell != null) {
+                nodes.add(sourceCell);
+                nodes.add(destinationCell);
+            }
+        }
+
+        return nodes;
+    }
+
+    private void drawSpecialCellConnections(List<Node> conveyorBelts, List<Node> contaminationSocks) {
+        if (specialPathPane == null) return;
+        specialPathPane.getChildren().clear();
+
+        drawLinesForType(conveyorBelts, "#00ff66");
+        drawLinesForType(contaminationSocks, "#ff003c");
+    }
+
+    private void drawLinesForType(List<Node> cells, String hexColor) {
+        if (cells == null) return;
+
+        for (int i = 0; i < cells.size() - 1; i += 2) {
+            Node sourceCell = cells.get(i);
+            Node destCell = cells.get(i + 1);
+
+            if (sourceCell == null || destCell == null || sourceCell.getScene() == null || destCell.getScene() == null) {
+                continue;
+            }
+
+            Bounds sourceBounds = specialPathPane.sceneToLocal(sourceCell.localToScene(sourceCell.getBoundsInLocal()));
+            Bounds destBounds = specialPathPane.sceneToLocal(destCell.localToScene(destCell.getBoundsInLocal()));
+
+            double startX = sourceBounds.getMinX() + (sourceBounds.getWidth() / 2.0);
+            double startY = sourceBounds.getMinY() + (sourceBounds.getHeight() / 2.0);
+            double endX = destBounds.getMinX() + (destBounds.getWidth() / 2.0);
+            double endY = destBounds.getMinY() + (destBounds.getHeight() / 2.0);
+
+            Line connectionLine = new Line(startX, startY, endX, endY);
+            connectionLine.setMouseTransparent(true);
+            connectionLine.setStroke(Color.web(hexColor));
+            connectionLine.setStrokeWidth(3.0);
+            connectionLine.setOpacity(0.75);
+            connectionLine.setBlendMode(BlendMode.SCREEN);
+
+            if ("#ff003c".equals(hexColor)) {
+                connectionLine.getStrokeDashArray().addAll(6.0, 6.0);
+            } else {
+                connectionLine.getStrokeDashArray().addAll(15.0, 5.0);
+            }
+
+            specialPathPane.getChildren().add(connectionLine);
+        }
+    }
+
+    private String getCellDisplayName(Cell cell) {
+        if (cell instanceof DoorCell) return ((DoorCell) cell).getRole() + " Door";
+        if (cell instanceof CardCell) return "Card Cell";
+        if (cell instanceof ConveyorBelt) return "Conveyor Belt";
+        if (cell instanceof ContaminationSock) return "Contamination Sock";
+        if (cell instanceof MonsterCell) return "Monster Cell";
+        return "Normal Cell";
+    }
+
+    private String getConfusionStatus(Monster monster) {
+        if (monster.getConfusionTurns() <= 0) return "not confused";
+        return monster.getConfusionTurns() + " turns left, acting as " + monster.getRole();
+    }
+
+    private void logPowerupDuration(Monster monster) {
+        if (monster instanceof Dasher) {
+            log("   -> Momentum Rush turns left: " + ((Dasher) monster).getMomentumTurns());
+        } else if (monster instanceof MultiTasker) {
+            log("   -> Focus Mode turns left: " + ((MultiTasker) monster).getNormalSpeedTurns());
+        }
+    }
+
+    private Map<Monster, Integer> snapshotStationedMonsterEnergy() {
+        Map<Monster, Integer> snapshot = new LinkedHashMap<>();
+        for (Monster monster : game.engine.Board.getStationedMonsters()) {
+            snapshot.put(monster, monster.getEnergy());
+        }
+        return snapshot;
+    }
+
+    private void logStationedMonsterEnergyChanges(Map<Monster, Integer> beforeEnergy) {
+        if (beforeEnergy == null || beforeEnergy.isEmpty()) return;
+
+        boolean anyChange = false;
+        for (Map.Entry<Monster, Integer> entry : beforeEnergy.entrySet()) {
+            Monster monster = entry.getKey();
+            int before = entry.getValue();
+            int diff = monster.getEnergy() - before;
+
+            if (diff > 0) {
+                log("   -> Stationed " + monster.getName() + " gained " + diff + " Energy.");
+                anyChange = true;
+            } else if (diff < 0) {
+                log("   -> Stationed " + monster.getName() + " lost " + Math.abs(diff) + " Energy.");
+                anyChange = true;
+            }
+        }
+
+        if (anyChange) {
+            updateStationedMonstersPanel();
+        }
+    }
+
+    private void updateDeckStatus() {
+        if (lblDeckStatus == null) return;
+
+        int remaining = game.engine.Board.getCards().size();
+        int total = game.engine.Board.getOriginalCards().size();
+        lblDeckStatus.setText("Cards Remaining: " + remaining + " / " + total);
+    }
+
+    private void updateStationedMonstersPanel() {
+        if (lblStationedMonsters == null) return;
+
+        StringBuilder stats = new StringBuilder();
+        for (Monster monster : game.engine.Board.getStationedMonsters()) {
+            stats.append(monster.getName())
+                    .append(" | ")
+                    .append(monster.getRole())
+                    .append(" | ")
+                    .append(getMonsterType(monster))
+                    .append("\nE: ")
+                    .append(monster.getEnergy())
+                    .append(" | Pos: ")
+                    .append(monster.getPosition())
+                    .append("\n");
+        }
+
+        lblStationedMonsters.setText(stats.length() == 0 ? "No stationed monsters" : stats.toString().trim());
+    }
+
+    private static class TurnGuess {
+        private final int roll;
+        private final int effectiveMove;
+        private final int landedPosition;
+        private final Cell landedCell;
+
+        private TurnGuess(int roll, int effectiveMove, int landedPosition, Cell landedCell) {
+            this.roll = roll;
+            this.effectiveMove = effectiveMove;
+            this.landedPosition = landedPosition;
+            this.landedCell = landedCell;
+        }
+    }
+
     // =========================================
     // HELPER METHODS: UI & VISUALS
     // =========================================
@@ -342,39 +665,14 @@ public class GameController {
 
         updateStatPanel(player, lblPlayerStats, "--- YOUR MONSTER ---");
         updateStatPanel(opponent, lblOpponentStats, "--- OPPONENT ---");
+        updateDeckStatus();
+        updateStationedMonstersPanel();
 
         boardRenderer.updateMonsterPositions(player, opponent, current, onComplete);
     }
 
-    private void playDiceVideo(int roll, Runnable onFinished) {
-        try {
-            String videoPath = "/MainMenu/assets/video/" + roll + ".mp4";
-            URL videoURL = getClass().getResource(videoPath);
-
-            if (videoURL == null) {
-                System.out.println("Video not found: " + videoPath);
-                if (onFinished != null) onFinished.run();
-                return;
-            }
-
-            if (diceMediaPlayer != null) diceMediaPlayer.stop();
-
-            Media media = new Media(videoURL.toExternalForm());
-            diceMediaPlayer = new MediaPlayer(media);
-            diceVideo.setMediaPlayer(diceMediaPlayer);
-            diceVideo.setVisible(true);
-
-            diceMediaPlayer.setOnEndOfMedia(() -> {
-                diceVideo.setVisible(false);
-                if (onFinished != null) onFinished.run();
-            });
-
-            diceMediaPlayer.play();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            if (onFinished != null) onFinished.run();
-        }
+    private void playDiceFaceAnimation(int roll, Runnable onFinished) {
+        AnimationManager.animateDiceFaceRoll(diceFaceLabel, roll, onFinished);
     }
 
     private void log(String message) {
@@ -525,13 +823,55 @@ public class GameController {
 
             Platform.runLater(() -> {
                 Stage currentStage = (Stage) boardGrid.getScene().getWindow();
-                WinWindow.display(winner, currentStage);
+                WinWindow.display(winner, gameEngine.getPlayer(), gameEngine.getOpponent(), currentStage);
             });
         }
     }
 
     private String getMonsterType(Monster m) {
         return m.getClass().getSimpleName();
+    }
+
+    private String getMonsterPassiveDescription(Monster m) {
+        if (m instanceof Dasher) return "Lightning Movement: dice movement is doubled.";
+        if (m instanceof Dynamo) return "Energy Amplification: gains and losses are doubled.";
+        if (m instanceof MultiTasker) return "Movement-Energy: movement halved, energy changes gain +200.";
+        if (m instanceof Schemer) return "Energy Manipulation: energy changes gain a +10 bonus.";
+        return "No passive trait.";
+    }
+
+    private String getMonsterPowerupName(Monster m) {
+        if (m instanceof Dasher) return "Momentum Rush";
+        if (m instanceof Dynamo) return "Energy Freeze";
+        if (m instanceof MultiTasker) return "Focus Mode";
+        if (m instanceof Schemer) return "Chain Attack";
+        return "Power-Up";
+    }
+
+    private String getMonsterPowerupDescription(Monster m) {
+        if (m instanceof Dasher) return "Momentum Rush: 3x movement for 3 turns.";
+        if (m instanceof Dynamo) return "Energy Freeze: opponent skips their next turn.";
+        if (m instanceof MultiTasker) return "Focus Mode: normal movement for 2 turns.";
+        if (m instanceof Schemer) return "Chain Attack: steals 10 energy from every other monster.";
+        return "No power-up description.";
+    }
+
+    private String getMonsterPowerupStatus(Monster m) {
+        if (m instanceof Dasher) {
+            int turns = ((Dasher) m).getMomentumTurns();
+            return turns > 0 ? "Momentum Rush active: " + turns + " turns left." : "Momentum Rush inactive.";
+        }
+        if (m instanceof Dynamo) {
+            return "Energy Freeze ready: freezes opponent for 1 turn.";
+        }
+        if (m instanceof MultiTasker) {
+            int turns = ((MultiTasker) m).getNormalSpeedTurns();
+            return turns > 0 ? "Focus Mode active: " + turns + " turns left." : "Focus Mode inactive.";
+        }
+        if (m instanceof Schemer) {
+            return "Chain Attack ready: shield does not block it.";
+        }
+        return "No active status.";
     }
 
     private String getActiveEffects(Monster m) {
@@ -547,6 +887,10 @@ public class GameController {
     }
 
     private void updateStatPanel(Monster m, Label displayLabel, String title) {
+        displayLabel.setWrapText(true);
+        displayLabel.setMaxWidth(245);
+        displayLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px; -fx-line-spacing: 2px;");
+
         String originalRole = m.getOriginalRole().toString();
         String currentRole = m.getRole().toString();
 
@@ -556,8 +900,9 @@ public class GameController {
         }
 
         String stats = String.format(
-                "%s\nName: %s\nBase Role: %s\nType: %s\nEnergy: %d\nPosition: %d\nEffects: %s",
-                title, m.getName(), roleDisplay, getMonsterType(m), m.getEnergy(), m.getPosition(), getActiveEffects(m)
+                "%s\nName: %s\nBase Role: %s\nCurrent Role: %s\nType: %s\nEnergy: %d\nPosition: %d\nEffects: %s\nPassive: %s\nPower-Up: %s\nStatus: %s",
+                title, m.getName(), m.getOriginalRole(), roleDisplay, getMonsterType(m), m.getEnergy(), m.getPosition(),
+                getActiveEffects(m), getMonsterPassiveDescription(m), getMonsterPowerupDescription(m), getMonsterPowerupStatus(m)
         );
 
         displayLabel.setText(stats);
@@ -565,6 +910,5 @@ public class GameController {
 
     public void stopAudio() {
         if (backgroundMusicPlayer != null) backgroundMusicPlayer.stop();
-        if (diceMediaPlayer != null) diceMediaPlayer.stop();
     }
 }

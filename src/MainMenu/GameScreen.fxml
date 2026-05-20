@@ -10,7 +10,6 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.media.MediaView?>
 
 <StackPane fx:id="rootPane" prefHeight="800.0" prefWidth="1200.0" stylesheets="@menu.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainMenu.GameController">
     <children>
@@ -25,23 +24,23 @@
         <BorderPane>
 
             <left>
-                <VBox fx:id="playerStatsBox" prefHeight="585.0" prefWidth="280.0" spacing="20.0" style="-fx-padding: 20;">
+                <VBox fx:id="playerStatsBox" prefHeight="585.0" prefWidth="310.0" spacing="12.0" style="-fx-padding: 16;">
                     <children>
                         <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="MONSTER STATS" />
 
-                        <Pane prefHeight="215.0" prefWidth="210.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
+                        <Pane prefHeight="280.0" prefWidth="278.0" style="-fx-border-color: #00d4ff; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
                             <children>
-                                <Label fx:id="lblPlayerStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Player Stats Here" />
+                                <Label fx:id="lblPlayerStats" layoutX="10" layoutY="10" prefWidth="255.0" style="-fx-text-fill: white; -fx-font-size: 12px;" text="Player Stats Here" wrapText="true" />
                             </children>
                         </Pane>
 
-                        <Pane prefHeight="215.0" prefWidth="210.0" style="-fx-border-color: #ff003c; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
+                        <Pane prefHeight="280.0" prefWidth="275.0" style="-fx-border-color: #ff003c; -fx-background-color: rgba(255,255,255,0.05); -fx-border-radius: 10; -fx-padding: 10;">
                             <children>
-                                <Label fx:id="lblOpponentStats" layoutX="15" layoutY="15" style="-fx-text-fill: white; -fx-font-size: 16px;" text="Opponent Stats Here" />
+                                <Label fx:id="lblOpponentStats" layoutX="10" layoutY="10" prefWidth="255.0" style="-fx-text-fill: white; -fx-font-size: 12px;" text="Opponent Stats Here" wrapText="true" />
                             </children>
                         </Pane>
-                        <Button fx:id="btnRollDice" mnemonicParsing="false" prefHeight="50.0" prefWidth="260.0" styleClass="button" text="ROLL DICE" />
-                  <MediaView fx:id="diceVideo" fitHeight="150.0" fitWidth="300.0" />
+                        <Button fx:id="btnRollDice" mnemonicParsing="false" prefHeight="45.0" prefWidth="275.0" styleClass="button" text="ROLL DICE" />
+                  <Label fx:id="diceFaceLabel" alignment="CENTER" prefHeight="72.0" prefWidth="275.0" style="-fx-text-fill: white; -fx-font-size: 42px; -fx-font-weight: bold; -fx-background-color: rgba(0,0,0,0.45); -fx-border-color: #00d4ff; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8;" text="-" />
                     </children>
                 </VBox>
             </left>
@@ -49,6 +48,7 @@
             <center>
                 <StackPane prefHeight="585.0" prefWidth="687.0" style="-fx-border-color: rgba(0,212,255,0.3); -fx-border-width: 2; -fx-border-radius: 20; -fx-padding: 10; -fx-margin: 10;">
                     <children>
+                        <Pane fx:id="specialPathPane" mouseTransparent="true" />
                         <GridPane fx:id="boardGrid" alignment="CENTER" hgap="5.0" prefHeight="561.0" prefWidth="621.0" vgap="5.0" />
                     </children>
                 </StackPane>
@@ -58,8 +58,11 @@
                 <VBox prefHeight="635.0" prefWidth="215.0" spacing="10.0" style="-fx-padding: 20;">
                     <children>
                         <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="ACTION LOG" />
-                        <TextArea fx:id="actionLog" editable="false" prefHeight="500.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
-                        <Button fx:id="btnPowerup" mnemonicParsing="false" prefHeight="136.0" prefWidth="175.0" styleClass="button" text="     USE&#10;POWERUP" />
+                        <Label fx:id="lblDeckStatus" prefWidth="195.0" style="-fx-text-fill: #ffd700; -fx-font-size: 13px; -fx-font-weight: bold;" text="Cards Remaining: 25 / 25" />
+                        <TextArea fx:id="actionLog" editable="false" prefHeight="320.0" prefWidth="195.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
+                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 15px;" text="STATIONED MONSTERS" />
+                        <Label fx:id="lblStationedMonsters" prefHeight="165.0" prefWidth="195.0" style="-fx-text-fill: white; -fx-font-size: 11px; -fx-background-color: rgba(0,0,0,0.35); -fx-border-color: rgba(0,212,255,0.45); -fx-border-width: 1; -fx-padding: 6;" text="Stationed monster stats" wrapText="true" />
+                        <Button fx:id="btnPowerup" mnemonicParsing="false" prefHeight="70.0" prefWidth="175.0" styleClass="button" text="     USE&#10;POWERUP" />
                     </children>
                 </VBox>
             </right>

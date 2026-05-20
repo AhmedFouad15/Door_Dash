@@ -3,6 +3,7 @@ package MainMenu;
 import javafx.animation.*;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.effect.BlurType;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.effect.DropShadow;
@@ -15,24 +16,65 @@ public class AnimationManager {
      * Shakes and scales the button, then runs the backend logic when finished.
      */
     public static void animateDiceRoll(Node diceNode, Runnable onAnimationFinished) {
-        // Quick spin
-        RotateTransition rotate = new RotateTransition(Duration.millis(300), diceNode);
-        rotate.setByAngle(360);
-        rotate.setCycleCount(1);
+        if (onAnimationFinished != null) onAnimationFinished.run();
+    }
 
-        // Quick "pop" scale effect
-        ScaleTransition scale = new ScaleTransition(Duration.millis(150), diceNode);
-        scale.setByX(0.1);
-        scale.setByY(0.1);
-        scale.setAutoReverse(true);
-        scale.setCycleCount(2);
+    public static void animateDiceFaceRoll(Label diceLabel, int finalRoll, Runnable onFinished) {
+        if (diceLabel == null) {
+            if (onFinished != null) onFinished.run();
+            return;
+        }
 
-        // Run them at the same time
-        ParallelTransition pt = new ParallelTransition(rotate, scale);
+        diceLabel.setVisible(true);
+        diceLabel.setText("-");
+        diceLabel.setScaleX(1.0);
+        diceLabel.setScaleY(1.0);
+        diceLabel.setRotate(0);
+        diceLabel.setEffect(new DropShadow(18, Color.web("#00d4ff")));
 
-        // CRITICAL: Tell the game to actually make the move AFTER the animation ends
-        pt.setOnFinished(e -> onAnimationFinished.run());
-        pt.play();
+        Timeline rolling = new Timeline();
+        int frames = 20;
+        for (int i = 0; i <= frames; i++) {
+            final int face = (i % 6) + 1;
+            KeyFrame frame = new KeyFrame(Duration.millis(i * 80), event -> {
+                diceLabel.setText(String.valueOf(face));
+                diceLabel.setRotate((face % 2 == 0) ? 8 : -8);
+                diceLabel.setScaleX(1.05);
+                diceLabel.setScaleY(1.05);
+            });
+            rolling.getKeyFrames().add(frame);
+        }
+
+        rolling.setOnFinished(event -> {
+            diceLabel.setText(String.valueOf(finalRoll));
+            diceLabel.setRotate(0);
+            diceLabel.setScaleX(1.0);
+            diceLabel.setScaleY(1.0);
+
+            DropShadow finalGlow = new DropShadow();
+            finalGlow.setBlurType(BlurType.GAUSSIAN);
+            finalGlow.setColor(Color.GOLD);
+            finalGlow.setRadius(28);
+            finalGlow.setSpread(0.45);
+            diceLabel.setEffect(finalGlow);
+
+            ScaleTransition pulse = new ScaleTransition(Duration.millis(225), diceLabel);
+            pulse.setFromX(1.0);
+            pulse.setFromY(1.0);
+            pulse.setToX(1.22);
+            pulse.setToY(1.22);
+            pulse.setAutoReverse(true);
+            pulse.setCycleCount(2);
+            pulse.setOnFinished(finish -> {
+                diceLabel.setScaleX(1.0);
+                diceLabel.setScaleY(1.0);
+                diceLabel.setEffect(null);
+                if (onFinished != null) onFinished.run();
+            });
+            pulse.play();
+        });
+
+        rolling.play();
     }
 
     /**
@@ -147,6 +189,35 @@ public class AnimationManager {
         pulse.setCycleCount(2);
         pulse.setAutoReverse(true);
         pulse.play();
+    }
+
+    public static void animatePowerupActivate(StackPane cell, String text) {
+        if (cell == null) return;
+
+        animateFloatingText(cell, text, true);
+
+        ScaleTransition pulse = new ScaleTransition(Duration.millis(180), cell);
+        pulse.setToX(1.18);
+        pulse.setToY(1.18);
+        pulse.setCycleCount(4);
+        pulse.setAutoReverse(true);
+        pulse.play();
+    }
+
+    public static void animateEnergyPulse(StackPane cell) {
+        if (cell == null) return;
+
+        DropShadow glow = new DropShadow(25, Color.web("#00d4ff"));
+        Node target = cell;
+        target.setEffect(glow);
+
+        FadeTransition fade = new FadeTransition(Duration.millis(650), target);
+        fade.setFromValue(0.75);
+        fade.setToValue(1.0);
+        fade.setCycleCount(2);
+        fade.setAutoReverse(true);
+        fade.setOnFinished(e -> target.setEffect(null));
+        fade.play();
     }
 
     /**

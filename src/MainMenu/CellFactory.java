@@ -11,6 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 import java.util.Map;
@@ -31,13 +32,18 @@ public class CellFactory {
     private static final Image FUNGUS_IMAGE  = loadImage("/MainMenu/assets/images/fungus.png");
     private static final Image YETI_IMAGE    = loadImage("/MainMenu/assets/images/yeti.png");
 
-    private static final Map<Integer, Image> MONSTER_IMAGES = Map.of(
-            2, RANDALL_IMAGE,
-            18, CELIA_IMAGE,
-            34, HENRY_IMAGE,
-            54, ROZ_IMAGE,
-            82, FUNGUS_IMAGE,
-            88, YETI_IMAGE
+    private static final Image SULLEY_IMAGE = loadImage("/MainMenu/assets/images/scarer_token.png");
+    private static final Image MIKE_IMAGE = loadImage("/MainMenu/assets/images/laugher_token.png");
+
+    private static final Map<String, Image> MONSTER_IMAGES = Map.of(
+            "James P. Sullivan", SULLEY_IMAGE,
+            "Mike Wazowski", MIKE_IMAGE,
+            "Randall Boggs", RANDALL_IMAGE,
+            "Celia Mae", CELIA_IMAGE,
+            "Henry J. Waternoose", HENRY_IMAGE,
+            "Roz", ROZ_IMAGE,
+            "Fungus", FUNGUS_IMAGE,
+            "Yeti", YETI_IMAGE
     );
 
     public static StackPane createVisualCell(int index, Cell cellBackend) {
@@ -56,7 +62,8 @@ public class CellFactory {
             borderColor = "#0000ff";
             glowColor = Color.BLUE;
 
-            cellIcon = MONSTER_IMAGES.get(index);
+            MonsterCell monsterCell = (MonsterCell) cellBackend;
+            cellIcon = MONSTER_IMAGES.get(monsterCell.getCellMonster().getName());
         }
         else if (cellBackend instanceof CardCell) {
             bgColor = "rgba(255, 0, 0, 0.3)";
@@ -81,6 +88,7 @@ public class CellFactory {
             if (door.isActivated()) {
                 bgColor = "rgba(50, 50, 50, 0.4)";
                 borderColor = "gray";
+                glowColor = Color.GRAY;
             } else {
                 String color = (door.getRole() == Role.SCARER) ? "#8a2be2" : "#ffd700";
                 bgColor = (door.getRole() == Role.SCARER) ? "rgba(138, 43, 226, 0.3)" : "rgba(255, 215, 0, 0.3)";
@@ -105,6 +113,47 @@ public class CellFactory {
             }
         }
 
+        if (cellBackend instanceof DoorCell) {
+            DoorCell door = (DoorCell) cellBackend;
+            Label doorInfo = new Label((door.getRole() == Role.SCARER ? "S" : "L") + "\n" + door.getEnergy());
+            doorInfo.setTextAlignment(TextAlignment.CENTER);
+            doorInfo.setStyle(
+                    "-fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; " +
+                            "-fx-background-color: rgba(0,0,0,0.55); -fx-padding: 2 4 2 4; -fx-background-radius: 4;"
+            );
+            StackPane.setAlignment(doorInfo, Pos.BOTTOM_RIGHT);
+            visualCell.getChildren().add(doorInfo);
+
+            if (door.isActivated()) {
+                Label exhausted = new Label("USED");
+                exhausted.setStyle("-fx-text-fill: #d9d9d9; -fx-font-size: 9px; -fx-font-weight: bold;");
+                StackPane.setAlignment(exhausted, Pos.CENTER);
+                visualCell.getChildren().add(exhausted);
+            }
+        }
+
+        if (cellBackend instanceof MonsterCell) {
+            MonsterCell monsterCell = (MonsterCell) cellBackend;
+            Label monsterName = new Label(shortMonsterName(monsterCell.getCellMonster().getName()));
+            monsterName.setTextAlignment(TextAlignment.CENTER);
+            monsterName.setWrapText(true);
+            monsterName.setMaxWidth(62);
+            monsterName.setStyle(
+                    "-fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; " +
+                            "-fx-background-color: rgba(0,0,0,0.55); -fx-padding: 1 3 1 3; -fx-background-radius: 4;"
+            );
+            StackPane.setAlignment(monsterName, Pos.BOTTOM_CENTER);
+            visualCell.getChildren().add(monsterName);
+        }
+
+        if (cellBackend instanceof TransportCell) {
+            TransportCell transportCell = (TransportCell) cellBackend;
+            Label effectLabel = new Label((transportCell.getEffect() > 0 ? "+" : "") + transportCell.getEffect());
+            effectLabel.setStyle("-fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold;");
+            StackPane.setAlignment(effectLabel, Pos.BOTTOM_RIGHT);
+            visualCell.getChildren().add(effectLabel);
+        }
+
         Label numberLabel = new Label(String.valueOf(index));
         numberLabel.setStyle("-fx-text-fill: rgba(255, 255, 255, 0.6); -fx-font-weight: bold;");
         StackPane.setAlignment(numberLabel, Pos.TOP_LEFT);
@@ -127,6 +176,12 @@ public class CellFactory {
             System.err.println("Could not load image: " + path);
             return null;
         }
+    }
+
+    private static String shortMonsterName(String name) {
+        if (name == null || name.isBlank()) return "Monster";
+        String[] parts = name.trim().split("\\s+");
+        return parts[0].length() > 8 ? parts[0].substring(0, 8) : parts[0];
     }
 
     private static void applyHoverEffects(StackPane cell, Color glowColor) {
