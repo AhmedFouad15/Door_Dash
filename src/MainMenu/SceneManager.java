@@ -16,6 +16,10 @@ public class SceneManager {
         stage = primaryStage;
     }
 
+    public static Stage getStage() {
+        return stage;
+    }
+
     public static void switchScene(String fxmlFile) {
         // Triggers the fade out before loading the new scene
         if (stage.getScene() != null && stage.getScene().getRoot() != null) {

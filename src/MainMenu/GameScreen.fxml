@@ -40,13 +40,13 @@
                             </children>
                         </Pane>
                         <Button fx:id="btnRollDice" mnemonicParsing="false" prefHeight="45.0" prefWidth="275.0" styleClass="button" text="ROLL DICE" />
-                  <Label fx:id="diceFaceLabel" alignment="CENTER" prefHeight="72.0" prefWidth="275.0" style="-fx-text-fill: white; -fx-font-size: 42px; -fx-font-weight: bold; -fx-background-color: rgba(0,0,0,0.45); -fx-border-color: #00d4ff; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8;" text="-" />
+                        <Label fx:id="diceFaceLabel" alignment="CENTER" prefHeight="72.0" prefWidth="275.0" style="-fx-text-fill: white; -fx-font-size: 42px; -fx-font-weight: bold; -fx-background-color: rgba(0,0,0,0.45); -fx-border-color: #00d4ff; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8;" text="-" />
                     </children>
                 </VBox>
             </left>
 
             <center>
-                <StackPane prefHeight="585.0" prefWidth="687.0" style="-fx-border-color: rgba(0,212,255,0.3); -fx-border-width: 2; -fx-border-radius: 20; -fx-padding: 10; -fx-margin: 10;">
+                <StackPane fx:id="boardCameraPane" prefHeight="585.0" prefWidth="687.0" style="-fx-border-color: rgba(0,212,255,0.3); -fx-border-width: 2; -fx-border-radius: 20; -fx-padding: 10; -fx-margin: 10;">
                     <children>
                         <Pane fx:id="specialPathPane" mouseTransparent="true" />
                         <GridPane fx:id="boardGrid" alignment="CENTER" hgap="5.0" prefHeight="561.0" prefWidth="621.0" vgap="5.0" />
@@ -59,23 +59,24 @@
                     <children>
                         <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 20px;" text="ACTION LOG" />
                         <Label fx:id="lblDeckStatus" prefWidth="195.0" style="-fx-text-fill: #ffd700; -fx-font-size: 13px; -fx-font-weight: bold;" text="Cards Remaining: 25 / 25" />
-                        <TextArea fx:id="actionLog" editable="false" prefHeight="320.0" prefWidth="195.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
-                        <Label style="-fx-text-fill: #00d4ff; -fx-font-weight: bold; -fx-font-size: 15px;" text="STATIONED MONSTERS" />
-                        <Label fx:id="lblStationedMonsters" prefHeight="165.0" prefWidth="195.0" style="-fx-text-fill: white; -fx-font-size: 11px; -fx-background-color: rgba(0,0,0,0.35); -fx-border-color: rgba(0,212,255,0.45); -fx-border-width: 1; -fx-padding: 6;" text="Stationed monster stats" wrapText="true" />
+                        <TextArea fx:id="actionLog" editable="false" prefHeight="550.0" prefWidth="195.0" style="-fx-control-inner-background: rgba(0,0,0,0.5); -fx-text-fill: white;" wrapText="true" />
                         <Button fx:id="btnPowerup" mnemonicParsing="false" prefHeight="70.0" prefWidth="175.0" styleClass="button" text="     USE&#10;POWERUP" />
                     </children>
                 </VBox>
             </right>
-         <top>
-            <BorderPane prefHeight="65.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
-               <left>
+            <top>
+                <BorderPane prefHeight="65.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
+                    <left>
                         <Button fx:id="HomeMenu" mnemonicParsing="false" prefHeight="30.0" prefWidth="140.0" styleClass="button" text="Menu" BorderPane.alignment="CENTER" />
-               </left>
-               <center>
+                    </left>
+                    <center>
                         <Label fx:id="lblTurnInfo" style="-fx-font-size: 32px;" styleClass="subtitle-text" text="PLAYER TURN" BorderPane.alignment="CENTER" />
-               </center>
-            </BorderPane>
-         </top>
+                    </center>
+                    <right>
+                        <Button fx:id="btnStationedDetails" mnemonicParsing="false" prefHeight="47.0" prefWidth="243.0" styleClass="button" text="Stationed Details" BorderPane.alignment="CENTER" />
+                    </right>
+                </BorderPane>
+            </top>
         </BorderPane>
     </children>
 </StackPane>

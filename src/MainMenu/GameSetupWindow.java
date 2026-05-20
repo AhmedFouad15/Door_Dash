@@ -1,115 +1,329 @@
 package MainMenu;
 
+import game.engine.Role;
+import javafx.animation.FadeTransition;
+import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
-import javafx.stage.Modality;
+import javafx.scene.paint.Color;
+import javafx.scene.effect.DropShadow;
 import javafx.stage.Stage;
-import game.engine.Role;
+import javafx.util.Duration;
+
+import java.net.URL;
 
 public class GameSetupWindow {
 
     public static void display() {
-        Stage window = new Stage();
-        window.initModality(Modality.APPLICATION_MODAL);
-        window.setTitle("Game Setup");
-        window.setMinWidth(500);
-        window.setMinHeight(600);
+        Stage stage = SceneManager.getStage();
+        if (stage != null && stage.getScene() != null && stage.getScene().getRoot() instanceof StackPane) {
+            display((StackPane) stage.getScene().getRoot());
+        } else {
+            SceneManager.switchScene("MainMenu.fxml");
+        }
+    }
 
-        // --- 1. INSTRUCTIONS SCREEN ---
-        VBox instructionsLayout = new VBox(20);
-        instructionsLayout.setPadding(new Insets(20));
-        instructionsLayout.setAlignment(Pos.CENTER);
-        instructionsLayout.setStyle("-fx-background-color: #2b2b2b;");
+    public static void display(StackPane hostRoot) {
+        if (hostRoot == null) return;
 
-        Label title = new Label("Welcome to Monstropolis");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FFD700;");
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.72);");
+        overlay.setOpacity(0);
 
-        Text rulesText = new Text(
+        VBox panel = new VBox(16);
+        panel.setAlignment(Pos.CENTER);
+        panel.setMaxWidth(620);
+        panel.setMaxHeight(680);
+        panel.setPadding(new Insets(24));
+        panel.setStyle(
+                "-fx-background-color: rgba(8, 18, 28, 0.96); " +
+                        "-fx-border-color: #00d4ff; " +
+                        "-fx-border-width: 2; " +
+                        "-fx-background-radius: 10; " +
+                        "-fx-border-radius: 10;"
+        );
+        panel.setEffect(new DropShadow(28, Color.web("#00d4ff")));
+
+        VBox content = new VBox(16);
+        content.setAlignment(Pos.CENTER);
+
+        panel.getChildren().addAll(createBrandHeader(), content);
+        overlay.getChildren().add(panel);
+        hostRoot.getChildren().add(overlay);
+
+        showModeSelection(content, overlay, hostRoot);
+        animateIn(overlay, panel);
+    }
+
+    private static VBox createBrandHeader() {
+        VBox header = new VBox(6);
+        header.setAlignment(Pos.CENTER);
+
+        ImageView logo = new ImageView();
+        URL logoUrl = GameSetupWindow.class.getResource("/MainMenu/assets/images/my_logo.png");
+        if (logoUrl != null) {
+            logo.setImage(new Image(logoUrl.toExternalForm()));
+            logo.setFitHeight(82);
+            logo.setPreserveRatio(true);
+            logo.setEffect(new DropShadow(18, Color.web("#00d4ff")));
+        }
+
+        Label gameName = new Label("DoorDasH");
+        gameName.setStyle("-fx-font-size: 38px; -fx-font-weight: bold; -fx-text-fill: white;");
+
+        Label subtitle = new Label("Scare vs Laugh Touchdown");
+        subtitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #ffd700;");
+
+        header.getChildren().addAll(logo, gameName, subtitle);
+        return header;
+    }
+
+    private static void showModeSelection(VBox content, StackPane overlay, StackPane hostRoot) {
+        content.getChildren().clear();
+
+        Label title = new Label("Choose Game Mode");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
+
+        Label hint = new Label("Play solo against the computer or keep the classic two player setup.");
+        hint.setStyle("-fx-text-fill: rgba(255,255,255,0.78); -fx-font-size: 13px;");
+        hint.setWrapText(true);
+        hint.setMaxWidth(500);
+
+        Button onePlayerBtn = createModeButton("One Player Mode", "#00d4ff", "#061018");
+        Button twoPlayerBtn = createModeButton("Two Player Mode", "#ffd700", "#101018");
+        Button backBtn = createSecondaryButton("Back");
+
+        HBox modeButtons = new HBox(18, onePlayerBtn, twoPlayerBtn);
+        modeButtons.setAlignment(Pos.CENTER);
+
+        onePlayerBtn.setOnAction(e -> {
+            GameController.singlePlayerMode = true;
+            GameController.playerDisplayName = "You";
+            GameController.opponentDisplayName = "Computer";
+            showInstructions(content, overlay, hostRoot);
+        });
+
+        twoPlayerBtn.setOnAction(e -> {
+            GameController.singlePlayerMode = false;
+            showNameEntry(content, overlay, hostRoot);
+        });
+
+        backBtn.setOnAction(e -> closeOverlay(overlay, hostRoot));
+
+        content.getChildren().addAll(title, hint, modeButtons, backBtn);
+    }
+
+    private static void showNameEntry(VBox content, StackPane overlay, StackPane hostRoot) {
+        content.getChildren().clear();
+
+        Label title = new Label("Player Names");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
+
+        TextField playerNameField = createNameField("Player 1 name");
+        TextField opponentNameField = createNameField("Player 2 name");
+
+        Button continueBtn = createPrimaryButton("Continue");
+        Button backBtn = createSecondaryButton("Back");
+
+        HBox actions = new HBox(14, backBtn, continueBtn);
+        actions.setAlignment(Pos.CENTER);
+
+        continueBtn.setOnAction(e -> {
+            GameController.playerDisplayName = cleanName(playerNameField.getText(), "Player 1");
+            GameController.opponentDisplayName = cleanName(opponentNameField.getText(), "Player 2");
+            showInstructions(content, overlay, hostRoot);
+        });
+        backBtn.setOnAction(e -> showModeSelection(content, overlay, hostRoot));
+
+        content.getChildren().addAll(title, playerNameField, opponentNameField, actions);
+    }
+
+    private static void showInstructions(VBox content, StackPane overlay, StackPane hostRoot) {
+        content.getChildren().clear();
+
+        Label title = new Label("Game Setup");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #00d4ff;");
+
+        Label rulesText = new Label(
                 "Welcome to Monstropolis, where every move is a race for energy and survival.\n\n" +
-                        "First: Select your role:\n" +
-                        "  * SCARER → Gain energy through screams\n" +
-                        "  * LAUGHER → Gain energy through laughter\n" +
-                        "* After choosing, you will be assigned a monster automatically.\n\n" +
-                        "You and your opponent will both start at cell 0.\n" +
-                        "Each monster starts with its own initial energy.\n\n" +
+                        "First, select your role:\n" +
+                        "  * SCARER - Gain energy through screams\n" +
+                        "  * LAUGHER - Gain energy through laughter\n" +
+                        "After choosing, you will be assigned a monster automatically.\n\n" +
                         "How to Play:\n" +
-                        "1. Power-Up (Optional)\n" +
-                        "  * Activate your monster’s special ability (costs energy).\n" +
-                        "2. Roll the Dice\n" +
-                        "  * Move forward based on the number rolled.\n" +
-                        "3. Land on a Cell (Different cells have different effects):\n" +
-                        "  * Doors → Gain or lose energy depending on your role\n" +
-                        "  * Monster Cells → Trigger special interactions (color: blue)\n" +
-                        "  * Card Cells → Draw a card with a special effect (color: red)\n" +
-                        "  * Conveyor Belts → Move forward (color: green)\n" +
-                        "  * Contamination Socks → Move backward and lose energy (color: orange)\n" +
-                        "  * Normal Cells → No effect (color: yellow)\n\n" +
+                        "1. Use your power-up when you have enough energy.\n" +
+                        "2. Roll the dice and move across the board.\n" +
+                        "3. Doors, monster cells, cards, conveyor belts, and contamination socks can all change the turn.\n\n" +
                         "Important Rules:\n" +
                         "1. You cannot land on a cell occupied by the opponent.\n" +
                         "2. Some effects impact both players.\n" +
                         "3. Shields can block negative energy effects.\n\n" +
                         "Winning Condition:\n" +
-                        "1. Reach the final cell AND have at least 1000 energy."
+                        "Reach the final cell and have at least 1000 energy."
         );
-        rulesText.setStyle("-fx-fill: white; -fx-font-size: 14px;");
-        rulesText.setWrappingWidth(450);
+        rulesText.setWrapText(true);
+        rulesText.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-line-spacing: 4px;");
+        rulesText.setMaxWidth(520);
 
-        // Make the text scrollable just in case the screen is small
         ScrollPane scrollPane = new ScrollPane(rulesText);
-        scrollPane.setStyle("-fx-background: #2b2b2b; -fx-border-color: transparent;");
         scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(300);
+        scrollPane.setMaxWidth(540);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: rgba(0,212,255,0.35);");
 
-        Button continueBtn = new Button("Continue");
-        continueBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;");
+        Button continueBtn = createPrimaryButton("Continue");
+        Button cancelBtn = createSecondaryButton("Back");
 
-        instructionsLayout.getChildren().addAll(title, scrollPane, continueBtn);
-        Scene instructionsScene = new Scene(instructionsLayout, 500, 600);
+        HBox actions = new HBox(14, cancelBtn, continueBtn);
+        actions.setAlignment(Pos.CENTER);
 
-        // --- 2. ROLE SELECTION SCREEN ---
-        VBox roleLayout = new VBox(30);
-        roleLayout.setPadding(new Insets(20));
-        roleLayout.setAlignment(Pos.CENTER);
-        roleLayout.setStyle("-fx-background-color: #2b2b2b;");
+        continueBtn.setOnAction(e -> showRoleSelection(content, overlay, hostRoot));
+        cancelBtn.setOnAction(e -> showModeSelection(content, overlay, hostRoot));
 
-        Label roleTitle = new Label("CHOOSE YOUR DESTINY");
+        content.getChildren().addAll(title, scrollPane, actions);
+    }
+
+    private static void showRoleSelection(VBox content, StackPane overlay, StackPane hostRoot) {
+        content.getChildren().clear();
+
+        Label roleTitle = new Label("Choose Your Role");
         roleTitle.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
 
-        Button btnScarer = new Button("SCARER");
-        btnScarer.setStyle("-fx-background-color: #8a2be2; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 15 30;");
+        Label hint = new Label("Pick the team you want to play as this match.");
+        hint.setStyle("-fx-text-fill: rgba(255,255,255,0.78); -fx-font-size: 13px;");
 
-        Button btnLaugher = new Button("LAUGHER");
-        btnLaugher.setStyle("-fx-background-color: #ffd700; -fx-text-fill: black; -fx-font-weight: bold; -fx-padding: 15 30;");
+        Button btnScarer = createRoleButton("SCARER", "#8a2be2", "white");
+        Button btnLaugher = createRoleButton("LAUGHER", "#ffd700", "#101018");
+        Button backBtn = createSecondaryButton("Back");
 
-        HBox buttonsBox = new HBox(40, btnScarer, btnLaugher);
-        buttonsBox.setAlignment(Pos.CENTER);
+        HBox roleButtons = new HBox(18, btnScarer, btnLaugher);
+        roleButtons.setAlignment(Pos.CENTER);
 
-        roleLayout.getChildren().addAll(roleTitle, buttonsBox);
-        Scene roleScene = new Scene(roleLayout, 500, 600);
+        btnScarer.setOnAction(e -> startGame(Role.SCARER, overlay, hostRoot));
+        btnLaugher.setOnAction(e -> startGame(Role.LAUGHER, overlay, hostRoot));
+        backBtn.setOnAction(e -> showInstructions(content, overlay, hostRoot));
 
-        // --- 3. ACTIONS ---
-        continueBtn.setOnAction(e -> window.setScene(roleScene));
+        content.getChildren().addAll(roleTitle, hint, roleButtons, backBtn);
+    }
 
-        btnScarer.setOnAction(e -> {
-            GameController.playerRole = Role.SCARER; // Set the static variable
-            window.close();
-            SceneManager.switchScene("GameScreen.fxml"); // Safely launch game
-        });
+    private static Button createPrimaryButton(String text) {
+        Button button = new Button(text);
+        button.setPrefWidth(170);
+        button.setPrefHeight(42);
+        button.setStyle(
+                "-fx-background-color: #00d4ff; " +
+                        "-fx-text-fill: #061018; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-background-radius: 6; " +
+                        "-fx-cursor: hand;"
+        );
+        return button;
+    }
 
-        btnLaugher.setOnAction(e -> {
-            GameController.playerRole = Role.LAUGHER; // Set the static variable
-            window.close();
-            SceneManager.switchScene("GameScreen.fxml"); // Safely launch game
-        });
+    private static Button createSecondaryButton(String text) {
+        Button button = new Button(text);
+        button.setPrefWidth(130);
+        button.setPrefHeight(42);
+        button.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.12); " +
+                        "-fx-border-color: rgba(255,255,255,0.35); " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-background-radius: 6; " +
+                        "-fx-border-radius: 6; " +
+                        "-fx-cursor: hand;"
+        );
+        return button;
+    }
 
-        // Start by showing the instructions first
-        window.setScene(instructionsScene);
-        window.showAndWait();
+    private static Button createRoleButton(String text, String background, String textColor) {
+        Button button = new Button(text);
+        button.setPrefWidth(190);
+        button.setPrefHeight(70);
+        button.setStyle(
+                "-fx-background-color: " + background + "; " +
+                        "-fx-text-fill: " + textColor + "; " +
+                        "-fx-font-size: 18px; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-cursor: hand;"
+        );
+        return button;
+    }
+
+    private static Button createModeButton(String text, String background, String textColor) {
+        Button button = new Button(text);
+        button.setPrefWidth(210);
+        button.setPrefHeight(76);
+        button.setStyle(
+                "-fx-background-color: " + background + "; " +
+                        "-fx-text-fill: " + textColor + "; " +
+                        "-fx-font-size: 16px; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-cursor: hand;"
+        );
+        return button;
+    }
+
+    private static TextField createNameField(String prompt) {
+        TextField field = new TextField();
+        field.setPromptText(prompt);
+        field.setMaxWidth(360);
+        field.setPrefHeight(44);
+        field.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.12); " +
+                        "-fx-border-color: rgba(0,212,255,0.45); " +
+                        "-fx-text-fill: white; " +
+                        "-fx-prompt-text-fill: rgba(255,255,255,0.55); " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-background-radius: 6; " +
+                        "-fx-border-radius: 6;"
+        );
+        return field;
+    }
+
+    private static String cleanName(String name, String fallback) {
+        if (name == null || name.trim().isEmpty()) return fallback;
+        String trimmed = name.trim();
+        return trimmed.length() > 18 ? trimmed.substring(0, 18) : trimmed;
+    }
+
+    private static void startGame(Role role, StackPane overlay, StackPane hostRoot) {
+        GameController.playerRole = role;
+        closeOverlay(overlay, hostRoot);
+        SceneManager.switchScene("GameScreen.fxml");
+    }
+
+    private static void animateIn(StackPane overlay, Node panel) {
+        FadeTransition fade = new FadeTransition(Duration.millis(180), overlay);
+        fade.setToValue(1);
+
+        panel.setScaleX(0.92);
+        panel.setScaleY(0.92);
+        ScaleTransition scale = new ScaleTransition(Duration.millis(220), panel);
+        scale.setToX(1);
+        scale.setToY(1);
+
+        fade.play();
+        scale.play();
+    }
+
+    private static void closeOverlay(StackPane overlay, StackPane hostRoot) {
+        FadeTransition fade = new FadeTransition(Duration.millis(140), overlay);
+        fade.setToValue(0);
+        fade.setOnFinished(e -> hostRoot.getChildren().remove(overlay));
+        fade.play();
     }
 }

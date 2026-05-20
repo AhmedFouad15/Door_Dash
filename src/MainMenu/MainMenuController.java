@@ -44,8 +44,7 @@ public class MainMenuController {
 
     @FXML
     private void handleStartGame() {
-        // Just call the window! It handles the instructions, the choice, AND the scene switch for you.
-        GameSetupWindow.display();
+        GameSetupWindow.display(rootPane);
     }
 
     private MediaPlayer backgroundMusicPlayer;
@@ -71,7 +70,7 @@ public class MainMenuController {
 
         btnStart.setOnAction(e -> {
             stopAudio(); // Stop the menu music
-            GameSetupWindow.display(); // Open the Setup/Role Selection window!
+            GameSetupWindow.display(rootPane);
         });
 
         btnInstructions.setOnAction(e -> {

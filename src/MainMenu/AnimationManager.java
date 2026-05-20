@@ -138,9 +138,7 @@ public class AnimationManager {
         double deltaX = newCell.getLayoutX() - oldCell.getLayoutX();
         double deltaY = newCell.getLayoutY() - oldCell.getLayoutY();
 
-        // Create the sliding animation (Takes 0.5 seconds)
-        // Create the sliding animation (Decreased by 66% for much faster movement)
-        TranslateTransition slide = new TranslateTransition(Duration.millis(200), monsterVisual);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(340), monsterVisual);
         slide.setByX(deltaX);
         slide.setByY(deltaY);
         slide.setInterpolator(Interpolator.EASE_BOTH); // Makes it speed up and slow down smoothly

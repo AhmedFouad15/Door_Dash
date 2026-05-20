@@ -17,6 +17,7 @@ import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.image.Image;
@@ -27,7 +28,9 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
+import javafx.animation.ScaleTransition;
 import javafx.animation.TranslateTransition;
 import javafx.animation.Animation;
 import javafx.scene.effect.GaussianBlur;
@@ -54,6 +57,7 @@ public class GameController {
     @FXML private Pane specialPathPane;
 
     @FXML private GridPane boardGrid;
+    @FXML private StackPane boardCameraPane;
     @FXML private Label lblTurnInfo;
     @FXML private VBox playerStatsBox;
     @FXML private Label lblPlayerStats;
@@ -64,17 +68,24 @@ public class GameController {
 
     @FXML private Button btnRollDice;
     @FXML private Button btnPowerup;
+    @FXML private Button btnStationedDetails;
     @FXML private Button HomeMenu;
     @FXML private Label diceFaceLabel;
 
     private MediaPlayer backgroundMusicPlayer;
     private PauseTransition specialPathRedrawDelay;
+    private PauseTransition computerTurnDelay;
+    private Monster singlePlayerTurnLabelOverride;
+    private static final double MOVE_CAMERA_ZOOM = 1.45;
 
     // The Engines
     private Game gameEngine;
     private BoardRenderer boardRenderer;
 
     public static Role playerRole = Role.SCARER;
+    public static boolean singlePlayerMode = false;
+    public static String playerDisplayName = "You";
+    public static String opponentDisplayName = "Opponent";
 
     public void initialize() {
         SoundManager.init();
@@ -96,6 +107,7 @@ public class GameController {
         setupActions();
         setupSpaceShortcut();
         updateUI();
+        updateTurnControls();
 
         try {
             // Load background music (loops forever)
@@ -121,6 +133,9 @@ public class GameController {
                         if (!btnRollDice.isDisabled()) {
                             btnRollDice.fire();
                         }
+                    } else if (event.isControlDown() && event.getCode() == KeyCode.W) {
+                        event.consume();
+                        makeCurrentPlayerWin();
                     }
                 });
             }
@@ -131,10 +146,14 @@ public class GameController {
         btnRollDice.setOnAction(e -> {
             if (gameEngine == null) return;
             btnRollDice.setDisable(true);
+            btnPowerup.setDisable(true);
             SoundManager.playDice();
 
             Monster activeMonster = gameEngine.getCurrent();
             Monster inactiveMonster = (activeMonster == gameEngine.getPlayer()) ? gameEngine.getOpponent() : gameEngine.getPlayer();
+            if (singlePlayerMode) {
+                singlePlayerTurnLabelOverride = activeMonster;
+            }
 
             // --- 1. RECORD TRUE PRE-TURN STATE ---
             int prePosActive = activeMonster.getPosition();
@@ -167,8 +186,9 @@ public class GameController {
                         log(activeMonster.getName() + " was FROZEN and skipped the turn.");
                         log("Freeze expired. Turn passed to " + gameEngine.getCurrent().getName() + ".");
                         log("=================================");
+                        singlePlayerTurnLabelOverride = null;
                         updateUI();
-                        btnRollDice.setDisable(false);
+                        finishTurnControls();
                         return;
                     }
 
@@ -180,7 +200,6 @@ public class GameController {
                     final int effectiveMove = turnGuess.effectiveMove;
                     final int landedPos = turnGuess.landedPosition;
                     final Cell landedCell = turnGuess.landedCell;
-
                     log("=================================");
                     log("🎲 " + activeMonster.getName() + " rolled a " + finalRoll + ".");
                     if (effectiveMove != finalRoll) {
@@ -192,6 +211,7 @@ public class GameController {
                     // ==========================================
                     playDiceFaceAnimation(finalRoll, () -> {
                         SoundManager.playMove(); // Play walking sound after video finishes
+                        focusMoveCameraOnPosition(prePosActive, 220);
 
                         // ==========================================
                         // TIME STOP: UI-ONLY DUMMY MONSTERS
@@ -212,7 +232,8 @@ public class GameController {
                         Monster uiOpponent = (activeMonster == gameEngine.getOpponent()) ? uiActive : uiInactive;
 
                         // Phase 1: Animate to the cell using dummy objects
-                        boardRenderer.updateMonsterPositions(uiPlayer, uiOpponent, uiActive, () -> {
+                        boolean uiActiveIsPlayer = activeMonster == gameEngine.getPlayer();
+                        boardRenderer.updateMonsterPositions(uiPlayer, uiOpponent, uiActive, uiActiveIsPlayer, this::focusMoveCameraOnPosition, () -> {
 
                             if (landedCell instanceof game.engine.cells.CardCell) {
                                 log("🃏 Landed on a Mystery Card!");
@@ -221,15 +242,24 @@ public class GameController {
 
                                 AnimationManager.showCardPopup(rootPane, topCard.getName(), topCard.getDescription(), () -> {
                                     // Phase 2: Card Closed! Now let the REAL backend models animate their final jumps
-                                    updateUI(() -> {
+                                    focusMoveCameraOnPosition(landedPos, 180);
+                                    updateUIFollowingMonster(activeMonster, () -> {
                                         finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
                                     });
                                 });
                             } else {
-                                // Not a card cell? Just update normally using the real models.
-                                updateUI(() -> {
-                                    finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
-                                });
+                                if (isTransportLanding(landedCell, activeMonster.getPosition(), landedPos)) {
+                                    updateStatusPanelsOnly();
+                                    boolean activeIsPlayer = activeMonster == gameEngine.getPlayer();
+                                    boardRenderer.updateMonsterPositionsWithDirectGlide(gameEngine.getPlayer(), gameEngine.getOpponent(), activeMonster, activeIsPlayer, this::focusMoveCameraOnPosition, () -> {
+                                        finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
+                                    });
+                                } else {
+                                    // Not a card or transport cell? Just update normally using the real models.
+                                    updateUIFollowingMonster(activeMonster, () -> {
+                                        finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
+                                    });
+                                }
                             }
                         });
                     });
@@ -237,7 +267,7 @@ public class GameController {
                 } catch (InvalidMoveException ex) {
                     SoundManager.playError();
                     showError("Invalid Move", ex.getMessage());
-                    btnRollDice.setDisable(false);
+                    finishTurnControls();
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -280,10 +310,18 @@ public class GameController {
                 showError("Not Enough Energy", ex.getMessage());
             }
             updateUI();
+            updateTurnControls();
         });
+
+        if (btnStationedDetails != null) {
+            btnStationedDetails.setOnAction(e -> showStationedMonstersPopup());
+        }
 
         if (HomeMenu != null) {
             HomeMenu.setOnAction(e -> {
+                if (computerTurnDelay != null) {
+                    computerTurnDelay.stop();
+                }
                 SoundManager.playMove();
                 SceneManager.switchScene("MainMenu.fxml");
                 stopAudio();
@@ -348,6 +386,11 @@ public class GameController {
         log("=================================");
 
         refreshBoardNow();
+        resetMoveCamera();
+        if (singlePlayerMode) {
+            singlePlayerTurnLabelOverride = null;
+            updateStatusPanelsOnly();
+        }
 
         if (energyDiff < 0) {
             StackPane playerCell = boardRenderer.getCellVisual(activeMonster.getPosition());
@@ -369,7 +412,7 @@ public class GameController {
 
         checkWinCondition();
         if (gameEngine.getWinner() == null) {
-            btnRollDice.setDisable(false);
+            finishTurnControls();
         }
     }
 
@@ -449,6 +492,116 @@ public class GameController {
         requestSpecialPathRedraw();
     }
 
+    private boolean isTransportLanding(Cell landedCell, int finalPos, int landedPos) {
+        return (landedCell instanceof ConveyorBelt || landedCell instanceof ContaminationSock) && finalPos != landedPos;
+    }
+
+    private boolean isComputerTurn() {
+        return singlePlayerMode && gameEngine != null && gameEngine.getCurrent() == gameEngine.getOpponent();
+    }
+
+    private void finishTurnControls() {
+        updateTurnControls();
+        scheduleComputerTurnIfNeeded();
+    }
+
+    private void updateTurnControls() {
+        if (btnRollDice == null || btnPowerup == null || gameEngine == null) return;
+
+        boolean computerTurn = isComputerTurn();
+        boolean gameOver = gameEngine.getWinner() != null;
+        btnRollDice.setDisable(gameOver || computerTurn);
+        btnPowerup.setDisable(gameOver || computerTurn);
+    }
+
+    private void scheduleComputerTurnIfNeeded() {
+        if (!isComputerTurn() || gameEngine.getWinner() != null) return;
+
+        if (computerTurnDelay != null) {
+            computerTurnDelay.stop();
+        }
+
+        computerTurnDelay = new PauseTransition(Duration.seconds(1.5));
+        computerTurnDelay.setOnFinished(event -> {
+            if (isComputerTurn() && gameEngine.getWinner() == null) {
+                btnRollDice.setDisable(false);
+                btnRollDice.fire();
+            }
+        });
+        computerTurnDelay.play();
+    }
+
+    private void makeCurrentPlayerWin() {
+        if (gameEngine == null || gameEngine.getWinner() != null) return;
+
+        if (computerTurnDelay != null) {
+            computerTurnDelay.stop();
+        }
+
+        Monster current = gameEngine.getCurrent();
+        current.setPosition(Constants.WINNING_POSITION);
+        current.setEnergy(Constants.WINNING_ENERGY);
+        refreshBoardNow();
+        updateStatusPanelsOnly();
+        log("SHORTCUT: " + getDisplayName(current) + " wins by Ctrl+W.");
+        checkWinCondition();
+    }
+
+    private String getDisplayName(Monster monster) {
+        if (gameEngine == null || monster == null) return "";
+        return monster == gameEngine.getPlayer() ? playerDisplayName : opponentDisplayName;
+    }
+
+    private void focusMoveCameraOnPosition(int position) {
+        focusMoveCameraOnPosition(position, 240);
+    }
+
+    private void focusMoveCameraOnPosition(int position, int durationMillis) {
+        if (boardCameraPane == null || boardRenderer == null) return;
+
+        StackPane focusCell = boardRenderer.getCellVisual(position);
+        if (focusCell == null || boardCameraPane.getScene() == null) return;
+
+        Bounds focusBounds = boardCameraPane.sceneToLocal(focusCell.localToScene(focusCell.getBoundsInLocal()));
+
+        double focusX = cellCenterX(focusBounds);
+        double focusY = cellCenterY(focusBounds);
+        double viewportCenterX = boardCameraPane.getLayoutBounds().getWidth() / 2.0;
+        double viewportCenterY = boardCameraPane.getLayoutBounds().getHeight() / 2.0;
+
+        double translateX = (viewportCenterX - focusX) * MOVE_CAMERA_ZOOM;
+        double translateY = (viewportCenterY - focusY) * MOVE_CAMERA_ZOOM;
+
+        animateBoardCamera(MOVE_CAMERA_ZOOM, translateX, translateY, durationMillis);
+    }
+
+    private void resetMoveCamera() {
+        animateBoardCamera(1.0, 0, 0, 320);
+    }
+
+    private void animateBoardCamera(double scale, double translateX, double translateY, int durationMillis) {
+        if (boardCameraPane == null) return;
+
+        ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(durationMillis), boardCameraPane);
+        scaleTransition.setToX(scale);
+        scaleTransition.setToY(scale);
+
+        TranslateTransition translateTransition = new TranslateTransition(Duration.millis(durationMillis), boardCameraPane);
+        translateTransition.setToX(translateX);
+        translateTransition.setToY(translateY);
+
+        ParallelTransition cameraMove = new ParallelTransition(scaleTransition, translateTransition);
+        cameraMove.play();
+    }
+
+    private double cellCenterX(Bounds bounds) {
+        return bounds.getMinX() + bounds.getWidth() / 2.0;
+    }
+
+    private double cellCenterY(Bounds bounds) {
+        return bounds.getMinY() + bounds.getHeight() / 2.0;
+    }
+
     private void setupSpecialPathDrawing() {
         specialPathRedrawDelay = new PauseTransition(Duration.millis(70));
         specialPathRedrawDelay.setOnFinished(event -> Platform.runLater(this::drawSpecialCellConnectionsFromBoard));
@@ -505,11 +658,11 @@ public class GameController {
         if (specialPathPane == null) return;
         specialPathPane.getChildren().clear();
 
-        drawLinesForType(conveyorBelts, "#00ff66");
-        drawLinesForType(contaminationSocks, "#ff003c");
+        drawLinesForType(conveyorBelts, "#00ff66", true);
+        drawLinesForType(contaminationSocks, "#ff003c", false);
     }
 
-    private void drawLinesForType(List<Node> cells, String hexColor) {
+    private void drawLinesForType(List<Node> cells, String hexColor, boolean conveyorLine) {
         if (cells == null) return;
 
         for (int i = 0; i < cells.size() - 1; i += 2) {
@@ -531,9 +684,10 @@ public class GameController {
             Line connectionLine = new Line(startX, startY, endX, endY);
             connectionLine.setMouseTransparent(true);
             connectionLine.setStroke(Color.web(hexColor));
-            connectionLine.setStrokeWidth(3.0);
-            connectionLine.setOpacity(0.75);
+            connectionLine.setStrokeWidth(5.5);
+            connectionLine.setOpacity(0.95);
             connectionLine.setBlendMode(BlendMode.SCREEN);
+            connectionLine.setEffect(new javafx.scene.effect.DropShadow(14, Color.web(hexColor)));
 
             if ("#ff003c".equals(hexColor)) {
                 connectionLine.getStrokeDashArray().addAll(6.0, 6.0);
@@ -608,7 +762,10 @@ public class GameController {
 
     private void updateStationedMonstersPanel() {
         if (lblStationedMonsters == null) return;
+        lblStationedMonsters.setText(buildStationedMonsterDetails());
+    }
 
+    private String buildStationedMonsterDetails() {
         StringBuilder stats = new StringBuilder();
         for (Monster monster : game.engine.Board.getStationedMonsters()) {
             stats.append(monster.getName())
@@ -620,10 +777,16 @@ public class GameController {
                     .append(monster.getEnergy())
                     .append(" | Pos: ")
                     .append(monster.getPosition())
+                    .append("\nPassive: ")
+                    .append(getMonsterPassiveDescription(monster))
+                    .append("\nPower-Up: ")
+                    .append(getMonsterPowerupDescription(monster))
+                    .append("\nStatus: ")
+                    .append(getMonsterPowerupStatus(monster))
                     .append("\n");
         }
 
-        lblStationedMonsters.setText(stats.length() == 0 ? "No stationed monsters" : stats.toString().trim());
+        return stats.length() == 0 ? "No stationed monsters" : stats.toString().trim();
     }
 
     private static class TurnGuess {
@@ -651,24 +814,51 @@ public class GameController {
     private void updateUI(Runnable onComplete) {
         if (gameEngine == null) return;
 
+        updateStatusPanelsOnly();
+        boardRenderer.updateMonsterPositions(gameEngine.getPlayer(), gameEngine.getOpponent(), gameEngine.getCurrent(), onComplete);
+    }
+
+    private void updateUIFollowingMonster(Monster focusMonster, Runnable onComplete) {
+        if (gameEngine == null) return;
+
+        updateStatusPanelsOnly();
+        boolean followPlayer = focusMonster == gameEngine.getPlayer();
+        boardRenderer.updateMonsterPositions(
+                gameEngine.getPlayer(),
+                gameEngine.getOpponent(),
+                gameEngine.getCurrent(),
+                followPlayer,
+                this::focusMoveCameraOnPosition,
+                onComplete
+        );
+    }
+
+    private void updateStatusPanelsOnly() {
         Monster player = gameEngine.getPlayer();
         Monster opponent = gameEngine.getOpponent();
         Monster current = gameEngine.getCurrent();
 
-        if (current == player) {
-            lblTurnInfo.setText("TURN: " + player.getName().toUpperCase() + " (YOU)");
+        if (singlePlayerMode) {
+            Monster displayedTurn = singlePlayerTurnLabelOverride != null ? singlePlayerTurnLabelOverride : current;
+            if (displayedTurn == player) {
+                lblTurnInfo.setText("Your Turn");
+                lblTurnInfo.setStyle("-fx-text-fill: #00d4ff; -fx-font-size: 32px; -fx-font-weight: bold;");
+            } else {
+                lblTurnInfo.setText("Computer Turn");
+                lblTurnInfo.setStyle("-fx-text-fill: #ff003c; -fx-font-size: 32px; -fx-font-weight: bold;");
+            }
+        } else if (current == player) {
+            lblTurnInfo.setText("TURN: " + player.getName().toUpperCase() + " (" + playerDisplayName.toUpperCase() + ")");
             lblTurnInfo.setStyle("-fx-text-fill: #00d4ff; -fx-font-size: 32px; -fx-font-weight: bold;");
         } else {
-            lblTurnInfo.setText("TURN: " + opponent.getName().toUpperCase() + " (OPPONENT)");
+            lblTurnInfo.setText("TURN: " + opponent.getName().toUpperCase() + " (" + opponentDisplayName.toUpperCase() + ")");
             lblTurnInfo.setStyle("-fx-text-fill: #ff003c; -fx-font-size: 32px; -fx-font-weight: bold;");
         }
 
-        updateStatPanel(player, lblPlayerStats, "--- YOUR MONSTER ---");
-        updateStatPanel(opponent, lblOpponentStats, "--- OPPONENT ---");
+        updateStatPanel(player, lblPlayerStats, "--- " + playerDisplayName.toUpperCase() + " ---");
+        updateStatPanel(opponent, lblOpponentStats, "--- " + opponentDisplayName.toUpperCase() + " ---");
         updateDeckStatus();
         updateStationedMonstersPanel();
-
-        boardRenderer.updateMonsterPositions(player, opponent, current, onComplete);
     }
 
     private void playDiceFaceAnimation(int roll, Runnable onFinished) {
@@ -817,15 +1007,73 @@ public class GameController {
         Monster winner = gameEngine.getWinner();
 
         if (winner != null) {
-            log("GAME OVER! " + winner.getName() + " WINS!");
+            log("GAME OVER! " + getDisplayName(winner) + " WINS!");
             btnRollDice.setDisable(true);
             btnPowerup.setDisable(true);
 
             Platform.runLater(() -> {
                 Stage currentStage = (Stage) boardGrid.getScene().getWindow();
-                WinWindow.display(winner, gameEngine.getPlayer(), gameEngine.getOpponent(), currentStage);
+                WinWindow.display(winner, gameEngine.getPlayer(), gameEngine.getOpponent(), currentStage,
+                        playerDisplayName, opponentDisplayName, singlePlayerMode);
             });
         }
+    }
+
+    private void showStationedMonstersPopup() {
+        if (rootPane == null) return;
+
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.78);");
+
+        VBox panel = new VBox(14);
+        panel.setAlignment(javafx.geometry.Pos.CENTER);
+        panel.setMaxWidth(520);
+        panel.setMaxHeight(560);
+        panel.setStyle(
+                "-fx-background-color: rgba(8, 18, 28, 0.96); " +
+                        "-fx-border-color: #00d4ff; " +
+                        "-fx-border-width: 2; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-border-radius: 8; " +
+                        "-fx-padding: 22;"
+        );
+        panel.setEffect(new javafx.scene.effect.DropShadow(28, javafx.scene.paint.Color.web("#00d4ff")));
+
+        Label title = new Label("STATIONED MONSTERS");
+        title.setStyle("-fx-text-fill: #00d4ff; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label details = new Label(buildStationedMonsterDetails());
+        details.setWrapText(true);
+        details.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-line-spacing: 3px;");
+
+        ScrollPane scrollPane = new ScrollPane(details);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(390);
+        scrollPane.setMaxWidth(470);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: rgba(0,212,255,0.35);");
+
+        Button closeButton = new Button("Close");
+        closeButton.setPrefWidth(150);
+        closeButton.setPrefHeight(36);
+        closeButton.setStyle(
+                "-fx-background-color: #00d4ff; " +
+                        "-fx-text-fill: #061018; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-background-radius: 4; " +
+                        "-fx-cursor: hand;"
+        );
+
+        closeButton.setOnAction(e -> rootPane.getChildren().remove(overlay));
+        overlay.setOnMouseClicked(e -> {
+            if (e.getTarget() == overlay) {
+                rootPane.getChildren().remove(overlay);
+            }
+            e.consume();
+        });
+
+        panel.getChildren().addAll(title, scrollPane, closeButton);
+        overlay.getChildren().add(panel);
+        rootPane.getChildren().add(overlay);
     }
 
     private String getMonsterType(Monster m) {

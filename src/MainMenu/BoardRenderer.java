@@ -7,6 +7,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.IntConsumer;
 
 public class BoardRenderer {
 
@@ -77,6 +78,11 @@ public class BoardRenderer {
     }
 
     public void updateMonsterPositions(Monster player, Monster opponent, Monster currentActive, Runnable onComplete) {
+        updateMonsterPositions(player, opponent, currentActive, true, null, onComplete);
+    }
+
+    public void updateMonsterPositions(Monster player, Monster opponent, Monster currentActive,
+                                       boolean followPlayer, IntConsumer cameraFollower, Runnable onComplete) {
         StackPane newPlayerVisual = MonsterRenderer.createMonsterVisual(player, player == currentActive);
         StackPane newOpponentVisual = MonsterRenderer.createMonsterVisual(opponent, opponent == currentActive);
 
@@ -89,14 +95,51 @@ public class BoardRenderer {
             }
         };
 
-        handleMonsterPlacement(player, newPlayerVisual, lastPlayerPos, true, checkFinished);
+        handleMonsterPlacement(player, newPlayerVisual, lastPlayerPos, true, followPlayer ? cameraFollower : null, checkFinished);
         lastPlayerPos = player.getPosition();
 
-        handleMonsterPlacement(opponent, newOpponentVisual, lastOpponentPos, false, checkFinished);
+        handleMonsterPlacement(opponent, newOpponentVisual, lastOpponentPos, false, followPlayer ? null : cameraFollower, checkFinished);
+        lastOpponentPos = opponent.getPosition();
+    }
+
+    public void updateMonsterPositionsWithDirectGlide(Monster player, Monster opponent, Monster currentActive, boolean glidePlayer, Runnable onComplete) {
+        updateMonsterPositionsWithDirectGlide(player, opponent, currentActive, glidePlayer, null, onComplete);
+    }
+
+    public void updateMonsterPositionsWithDirectGlide(Monster player, Monster opponent, Monster currentActive,
+                                                      boolean glidePlayer, IntConsumer cameraFollower, Runnable onComplete) {
+        StackPane newPlayerVisual = MonsterRenderer.createMonsterVisual(player, player == currentActive);
+        StackPane newOpponentVisual = MonsterRenderer.createMonsterVisual(opponent, opponent == currentActive);
+
+        int[] completed = {0};
+        Runnable checkFinished = () -> {
+            completed[0]++;
+            if (completed[0] == 2 && onComplete != null) {
+                onComplete.run();
+            }
+        };
+
+        if (glidePlayer) {
+            handleMonsterDirectGlide(player, newPlayerVisual, lastPlayerPos, true, cameraFollower, checkFinished);
+        } else {
+            handleMonsterPlacement(player, newPlayerVisual, lastPlayerPos, true, null, checkFinished);
+        }
+        lastPlayerPos = player.getPosition();
+
+        if (glidePlayer) {
+            handleMonsterPlacement(opponent, newOpponentVisual, lastOpponentPos, false, null, checkFinished);
+        } else {
+            handleMonsterDirectGlide(opponent, newOpponentVisual, lastOpponentPos, false, cameraFollower, checkFinished);
+        }
         lastOpponentPos = opponent.getPosition();
     }
 
     private void handleMonsterPlacement(Monster monster, StackPane newVisual, int lastPos, boolean isPlayer, Runnable onComplete) {
+        handleMonsterPlacement(monster, newVisual, lastPos, isPlayer, null, onComplete);
+    }
+
+    private void handleMonsterPlacement(Monster monster, StackPane newVisual, int lastPos, boolean isPlayer,
+                                        IntConsumer cameraFollower, Runnable onComplete) {
         String tag = isPlayer ? "player_visual" : "opponent_visual";
         newVisual.setId(tag);
 
@@ -113,11 +156,12 @@ public class BoardRenderer {
             if (onComplete != null) onComplete.run();
         } else {
             // Otherwise, do the smooth step-by-step walk
-            moveStepByStep(newVisual, lastPos, targetPos, tag, onComplete);
+            moveStepByStep(newVisual, lastPos, targetPos, tag, cameraFollower, onComplete);
         }
     }
 
-    private void moveStepByStep(StackPane visual, int currentStep, int endStep, String tag, Runnable onComplete) {
+    private void moveStepByStep(StackPane visual, int currentStep, int endStep, String tag,
+                                IntConsumer cameraFollower, Runnable onComplete) {
         // Base Case: We arrived at the destination!
         if (currentStep == endStep) {
             if (onComplete != null) onComplete.run();
@@ -137,6 +181,10 @@ public class BoardRenderer {
             currentCell.getChildren().add(visual);
         }
 
+        if (cameraFollower != null) {
+            cameraFollower.accept(nextStep);
+        }
+
         // Use your existing AnimationManager!
         AnimationManager.animateMonsterMove(visual, currentCell, nextCell, () -> {
             currentCell.getChildren().remove(visual);
@@ -144,7 +192,55 @@ public class BoardRenderer {
             nextCell.getChildren().add(visual);
 
             // Recursively call the next step
-            moveStepByStep(visual, nextStep, endStep, tag, onComplete);
+            moveStepByStep(visual, nextStep, endStep, tag, cameraFollower, onComplete);
+        });
+    }
+
+    private void handleMonsterDirectGlide(Monster monster, StackPane newVisual, int lastPos, boolean isPlayer, Runnable onComplete) {
+        handleMonsterDirectGlide(monster, newVisual, lastPos, isPlayer, null, onComplete);
+    }
+
+    private void handleMonsterDirectGlide(Monster monster, StackPane newVisual, int lastPos, boolean isPlayer,
+                                          IntConsumer cameraFollower, Runnable onComplete) {
+        String tag = isPlayer ? "player_visual" : "opponent_visual";
+        newVisual.setId(tag);
+
+        int targetPos = monster.getPosition();
+        StackPane startCell = getCellVisual(lastPos);
+        StackPane targetCell = getCellVisual(targetPos);
+
+        if (lastPos == -1 || lastPos == targetPos || startCell == null || targetCell == null) {
+            if (targetCell != null) {
+                targetCell.getChildren().removeIf(n -> tag.equals(n.getId()));
+                targetCell.getChildren().add(newVisual);
+            }
+            if (onComplete != null) onComplete.run();
+            return;
+        }
+
+        StackPane visual = null;
+        for (javafx.scene.Node child : startCell.getChildren()) {
+            if (tag.equals(child.getId()) && child instanceof StackPane) {
+                visual = (StackPane) child;
+                break;
+            }
+        }
+
+        if (visual == null) {
+            visual = newVisual;
+            startCell.getChildren().removeIf(n -> tag.equals(n.getId()));
+            startCell.getChildren().add(visual);
+        }
+
+        StackPane movingVisual = visual;
+        if (cameraFollower != null) {
+            cameraFollower.accept(targetPos);
+        }
+        AnimationManager.animateMonsterMove(movingVisual, startCell, targetCell, () -> {
+            startCell.getChildren().remove(movingVisual);
+            targetCell.getChildren().removeIf(n -> tag.equals(n.getId()));
+            targetCell.getChildren().add(newVisual);
+            if (onComplete != null) onComplete.run();
         });
     }
 }

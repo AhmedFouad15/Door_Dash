@@ -19,15 +19,17 @@ import java.util.Objects;
 public class WinWindow {
 
     public static void display(Monster winner, Monster player, Monster opponent, Stage primaryStage) {
+        display(winner, player, opponent, primaryStage, "You", "Opponent", false);
+    }
+
+    public static void display(Monster winner, Monster player, Monster opponent, Stage primaryStage,
+                               String playerDisplayName, String opponentDisplayName, boolean singlePlayerMode) {
         Stage window = new Stage();
-        // Blocks interaction with the game board until they click a button
         window.initModality(Modality.APPLICATION_MODAL);
         window.setTitle("Game Over!");
         window.setMinWidth(400);
 
-        // 1. Play the Victory Sound using your existing assets
         try {
-            // Assuming your SoundManager has a playSound method. If not, you can use AudioClip directly:
             String soundPath = Objects.requireNonNull(WinWindow.class.getResource("/MainMenu/assets/audio/victory_fanfare.wav")).toExternalForm();
             javafx.scene.media.AudioClip winSound = new javafx.scene.media.AudioClip(soundPath);
             winSound.play();
@@ -35,22 +37,23 @@ public class WinWindow {
             System.out.println("Could not load victory sound.");
         }
 
-        // 2. Winner Text
-        Label congratsLabel = new Label("🎉 CONGRATULATIONS! 🎉");
-        congratsLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FFD700;"); // Gold color
+        boolean playerWon = winner == player;
+        String winnerDisplayName = playerWon ? playerDisplayName : opponentDisplayName;
 
-        Label winnerNameLabel = new Label(winner.getName() + " (" + winner.getRole() + ") takes the win!");
+        Label congratsLabel = new Label(singlePlayerMode ? (playerWon ? "YOU WON!" : "YOU LOST!") : "CONGRATULATIONS!");
+        congratsLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FFD700;");
+
+        Label winnerNameLabel = new Label(winnerDisplayName + " - " + winner.getName() + " (" + winner.getRole() + ") takes the win!");
         winnerNameLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: white;");
 
         Label finalEnergyLabel = new Label(
                 "Final Energy\n" +
-                        player.getName() + " (" + player.getRole() + "): " + player.getEnergy() + "\n" +
-                        opponent.getName() + " (" + opponent.getRole() + "): " + opponent.getEnergy()
+                        playerDisplayName + " - " + player.getName() + " (" + player.getRole() + "): " + player.getEnergy() + "\n" +
+                        opponentDisplayName + " - " + opponent.getName() + " (" + opponent.getRole() + "): " + opponent.getEnergy()
         );
         finalEnergyLabel.setStyle("-fx-font-size: 15px; -fx-text-fill: white; -fx-alignment: center;");
         finalEnergyLabel.setWrapText(true);
 
-        // 3. Winner Image (Using your tokens based on Role)
         ImageView winnerImage = new ImageView();
         try {
             String imagePath = winner.getRole() == Role.SCARER ?
@@ -65,27 +68,19 @@ public class WinWindow {
             System.out.println("Could not load winner image.");
         }
 
-        // 4. Buttons
         Button playAgainBtn = new Button("Play Again");
         Button menuBtn = new Button("Main Menu");
 
-        // Style buttons to match your menu.css vibe
-        String btnStyle = "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;";
-        playAgainBtn.setStyle(btnStyle);
+        playAgainBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
         menuBtn.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
-
-        // Button Actions using your SceneManager
-        // Inside WinWindow.java, fix your button actions like this:
 
         playAgainBtn.setOnAction(e -> {
             window.close();
-            // Call the setup window instead of switching directly to the game!
             GameSetupWindow.display();
         });
 
         menuBtn.setOnAction(e -> {
             window.close();
-            // CORRECTED: Call the static method directly
             SceneManager.switchScene("MainMenu.fxml");
         });
 
@@ -93,11 +88,10 @@ public class WinWindow {
         buttonLayout.setAlignment(Pos.CENTER);
         buttonLayout.getChildren().addAll(playAgainBtn, menuBtn);
 
-        // 5. Layout Setup
         VBox layout = new VBox(20);
         layout.setPadding(new Insets(30));
         layout.setAlignment(Pos.CENTER);
-        layout.setStyle("-fx-background-color: #2b2b2b;"); // Dark background to make image/text pop
+        layout.setStyle("-fx-background-color: #2b2b2b;");
         layout.getChildren().addAll(congratsLabel, winnerImage, winnerNameLabel, finalEnergyLabel, buttonLayout);
 
         Scene scene = new Scene(layout);
