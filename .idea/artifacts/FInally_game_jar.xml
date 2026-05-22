@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="FInally game:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/FInally_game_jar</output-path>
+    <root id="archive" name="FInally game.jar">
+      <element id="module-output" name="FInally game" />
+      <element id="library" level="project" name="lib" />
+    </root>
+  </artifact>
+</component>

@@ -17,6 +17,8 @@ import javafx.stage.Stage;
 import java.io.InputStream;
 import java.util.Objects;
 
+import static MainMenu.SoundManager.playLose_game;
+
 public class WinWindow {
 
     public static void display(Monster winner, Monster player, Monster opponent, Stage primaryStage) {
@@ -37,14 +39,6 @@ public class WinWindow {
             window.getIcons().add(logo);
         }
 
-        try {
-            String soundPath = Objects.requireNonNull(WinWindow.class.getResource("/MainMenu/assets/audio/victory_fanfare.wav")).toExternalForm();
-            javafx.scene.media.AudioClip winSound = new javafx.scene.media.AudioClip(soundPath);
-            winSound.play();
-        } catch (Exception e) {
-            System.out.println("Could not load victory sound.");
-        }
-
         boolean playerWon = winner == player;
         String winnerDisplayName = playerWon ? playerDisplayName : opponentDisplayName;
 
@@ -53,6 +47,20 @@ public class WinWindow {
         logoView.setPreserveRatio(true);
 
         Label congratsLabel = new Label(singlePlayerMode ? (playerWon ? "YOU WON!" : "YOU LOST!") : "GAME OVER");
+        if(playerWon == false && singlePlayerMode == true){
+            String soundPath = Objects.requireNonNull(WinWindow.class.getResource("/MainMenu/assets/audio/game_lost.mp3")).toExternalForm();
+            javafx.scene.media.AudioClip winSound = new javafx.scene.media.AudioClip(soundPath);
+            winSound.play();
+        }
+        else{
+            try {
+                String soundPath = Objects.requireNonNull(WinWindow.class.getResource("/MainMenu/assets/audio/victory_fanfare.wav")).toExternalForm();
+                javafx.scene.media.AudioClip winSound = new javafx.scene.media.AudioClip(soundPath);
+                winSound.play();
+            } catch (Exception e) {
+                System.out.println("Could not load victory sound.");
+            }
+        }
         congratsLabel.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #FFD700;");
         congratsLabel.setTextAlignment(TextAlignment.CENTER);
 

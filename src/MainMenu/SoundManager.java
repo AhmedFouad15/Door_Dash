@@ -16,6 +16,7 @@ public class SoundManager {
     private static AudioClip scareDoorSound;
     private static AudioClip laughDoorSound;
     private static AudioClip contaminationSound;
+    private static AudioClip lose_game;
 
     // Call this ONCE in GameController.initialize()
     public static void init() {
@@ -29,6 +30,7 @@ public class SoundManager {
         scareDoorSound = loadOptionalSound("scare.m4a");
         laughDoorSound = loadOptionalSound("laugh.m4a");
         contaminationSound = loadOptionalSound("2319.mp3");
+        lose_game = loadOptionalSound("lose_game.mp3");
     }
 
         // Note: background2.mp3 and background.mp3 are long files,
@@ -60,6 +62,7 @@ public class SoundManager {
     public static void playDamage() { if (damageSound != null) damageSound.play(); }
     public static void playVictory() { if (victorySound != null) victorySound.play(); }
     public static void playLose() { if (loseSound != null) loseSound.play(); }
+    public static void playLose_game(){if(lose_game!=null) lose_game.play();}
     public static void playDoor(Role role) {
         AudioClip doorSound = role == Role.SCARER ? scareDoorSound : laughDoorSound;
         if (doorSound != null) {
