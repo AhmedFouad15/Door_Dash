@@ -89,6 +89,7 @@ public class CellFactory {
                 bgColor = "rgba(50, 50, 50, 0.4)";
                 borderColor = "gray";
                 glowColor = Color.GRAY;
+                cellIcon = (door.getRole() == Role.SCARER) ? DOOR_SCARER_IMAGE : DOOR_LAUGHER_IMAGE;
             } else {
                 String color = (door.getRole() == Role.SCARER) ? "#8a2be2" : "#ffd700";
                 bgColor = (door.getRole() == Role.SCARER) ? "rgba(138, 43, 226, 0.3)" : "rgba(255, 215, 0, 0.3)";
@@ -106,6 +107,10 @@ public class CellFactory {
             ImageView iconView = new ImageView(cellIcon);
             iconView.setFitWidth(35);
             iconView.setFitHeight(35);
+            if (cellBackend instanceof DoorCell && ((DoorCell) cellBackend).isActivated()) {
+                iconView.setOpacity(0.45);
+                iconView.setRotate(-10);
+            }
             visualCell.getChildren().add(iconView);
 
             if (cellBackend instanceof ConveyorBelt) {
@@ -125,8 +130,11 @@ public class CellFactory {
             visualCell.getChildren().add(doorInfo);
 
             if (door.isActivated()) {
-                Label exhausted = new Label("USED");
-                exhausted.setStyle("-fx-text-fill: #d9d9d9; -fx-font-size: 9px; -fx-font-weight: bold;");
+                Label exhausted = new Label("Used");
+                exhausted.setStyle(
+                        "-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold; " +
+                                "-fx-background-color: rgba(0,0,0,0.72); -fx-padding: 3 6 3 6; -fx-background-radius: 4;"
+                );
                 StackPane.setAlignment(exhausted, Pos.CENTER);
                 visualCell.getChildren().add(exhausted);
             }
@@ -139,8 +147,8 @@ public class CellFactory {
             monsterName.setWrapText(true);
             monsterName.setMaxWidth(62);
             monsterName.setStyle(
-                    "-fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; " +
-                            "-fx-background-color: rgba(0,0,0,0.55); -fx-padding: 1 3 1 3; -fx-background-radius: 4;"
+                    "-fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; " +
+                            "-fx-background-color: rgba(0,0,0,0.76); -fx-padding: 2 4 2 4; -fx-background-radius: 4;"
             );
             StackPane.setAlignment(monsterName, Pos.BOTTOM_CENTER);
             visualCell.getChildren().add(monsterName);

@@ -10,6 +10,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Animation;
+import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 import javafx.animation.FadeTransition;
 import javafx.scene.effect.DropShadow;
@@ -44,10 +45,12 @@ public class MainMenuController {
 
     @FXML
     private void handleStartGame() {
-        GameSetupWindow.display(rootPane);
+        playStartSequence();
     }
 
     private MediaPlayer backgroundMusicPlayer;
+    private MediaPlayer coverPlayer;
+    private MediaPlayer jokesPlayer;
     private AudioClip hoverSound;
     private AudioClip clickSound;
 
@@ -69,8 +72,7 @@ public class MainMenuController {
         btnExit.setOnAction(e -> Platform.exit());
 
         btnStart.setOnAction(e -> {
-            stopAudio(); // Stop the menu music
-            GameSetupWindow.display(rootPane);
+            playStartSequence();
         });
 
         btnInstructions.setOnAction(e -> {
@@ -117,7 +119,7 @@ public class MainMenuController {
 
         try {
             // Load background music (loops forever)
-            URL musicUrl = getClass().getResource("/MainMenu/assets/audio/background2.mp3");
+            URL musicUrl = getClass().getResource("/MainMenu/assets/audio/monsters-inc.mp3");
             Media bgMedia = new Media(musicUrl.toExternalForm());
             backgroundMusicPlayer = new MediaPlayer(bgMedia);
             backgroundMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
@@ -125,7 +127,7 @@ public class MainMenuController {
             backgroundMusicPlayer.play();
 
             // Load UI sounds
-            URL hoverUrl = getClass().getResource("/MainMenu/assets/audio/ui.mp3");
+            URL hoverUrl = getClass().getResource("/MainMenu/assets/audio/UI.mp3");
             hoverSound = new AudioClip(hoverUrl.toExternalForm());
             hoverSound.setVolume(0.5);
 
@@ -138,9 +140,68 @@ public class MainMenuController {
         }
     }
 
+    private void playStartSequence() {
+        btnStart.setDisable(true);
+        btnInstructions.setDisable(true);
+        btnExit.setDisable(true);
+
+        stopMenuLoopOnly();
+
+        coverPlayer = createMediaPlayer("cover.mp3", 0.75);
+        jokesPlayer = createMediaPlayer("jokes.mp3", 0.75);
+
+        if (coverPlayer == null || jokesPlayer == null) {
+            enableMenuButtons();
+            GameSetupWindow.display(rootPane);
+            return;
+        }
+
+        coverPlayer.setOnEndOfMedia(() -> {
+            PauseTransition waitBeforeJokes = new PauseTransition(Duration.seconds(1));
+            waitBeforeJokes.setOnFinished(event -> {
+                jokesPlayer.setOnEndOfMedia(() -> {
+                    enableMenuButtons();
+                });
+                jokesPlayer.play();
+                enableMenuButtons();
+                GameSetupWindow.display(rootPane);
+            });
+            waitBeforeJokes.play();
+        });
+
+        coverPlayer.play();
+    }
+
+    private MediaPlayer createMediaPlayer(String fileName, double volume) {
+        try {
+            URL url = getClass().getResource("/MainMenu/assets/audio/" + fileName);
+            if (url == null) return null;
+
+            MediaPlayer player = new MediaPlayer(new Media(url.toExternalForm()));
+            player.setVolume(volume);
+            return player;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void enableMenuButtons() {
+        btnStart.setDisable(false);
+        btnInstructions.setDisable(false);
+        btnExit.setDisable(false);
+    }
+
+    private void stopMenuLoopOnly() {
+        if (backgroundMusicPlayer != null) {
+            backgroundMusicPlayer.stop();
+        }
+    }
+
     private void stopAudio() {
         if (clickSound != null) clickSound.play();
-        if (backgroundMusicPlayer != null) backgroundMusicPlayer.stop();
+        stopMenuLoopOnly();
+        if (coverPlayer != null) coverPlayer.stop();
+        if (jokesPlayer != null) jokesPlayer.stop();
     }
 
     // --- UPGRADED HOVER METHOD ---

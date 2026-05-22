@@ -17,6 +17,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -98,9 +99,11 @@ public class GameSetupWindow {
         hint.setStyle("-fx-text-fill: rgba(255,255,255,0.78); -fx-font-size: 13px;");
         hint.setWrapText(true);
         hint.setMaxWidth(500);
+        hint.setAlignment(Pos.CENTER);
+        hint.setTextAlignment(TextAlignment.CENTER);
 
-        Button onePlayerBtn = createModeButton("One Player Mode", "#00d4ff", "#061018");
-        Button twoPlayerBtn = createModeButton("Two Player Mode", "#ffd700", "#101018");
+        Button onePlayerBtn = createModeButton("1 Player", "#00d4ff", "#061018");
+        Button twoPlayerBtn = createModeButton("2 Players", "#ffd700", "#101018");
         Button backBtn = createSecondaryButton("Back");
 
         HBox modeButtons = new HBox(18, onePlayerBtn, twoPlayerBtn);
@@ -196,11 +199,18 @@ public class GameSetupWindow {
     private static void showRoleSelection(VBox content, StackPane overlay, StackPane hostRoot) {
         content.getChildren().clear();
 
-        Label roleTitle = new Label("Choose Your Role");
+        String chooser = GameController.singlePlayerMode
+                ? GameController.playerDisplayName
+                : cleanName(GameController.playerDisplayName, "Player 1");
+        Label roleTitle = new Label(chooser + ", Choose Your Character");
         roleTitle.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
+        roleTitle.setAlignment(Pos.CENTER);
+        roleTitle.setTextAlignment(TextAlignment.CENTER);
 
         Label hint = new Label("Pick the team you want to play as this match.");
         hint.setStyle("-fx-text-fill: rgba(255,255,255,0.78); -fx-font-size: 13px;");
+        hint.setAlignment(Pos.CENTER);
+        hint.setTextAlignment(TextAlignment.CENTER);
 
         Button btnScarer = createRoleButton("SCARER", "#8a2be2", "white");
         Button btnLaugher = createRoleButton("LAUGHER", "#ffd700", "#101018");

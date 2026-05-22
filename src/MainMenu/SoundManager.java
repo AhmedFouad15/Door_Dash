@@ -1,6 +1,7 @@
 package MainMenu;
 
 import javafx.scene.media.AudioClip;
+import game.engine.Role;
 import java.net.URL;
 
 public class SoundManager {
@@ -12,6 +13,9 @@ public class SoundManager {
     private static AudioClip damageSound;
     private static AudioClip victorySound;
     private static AudioClip loseSound;
+    private static AudioClip scareDoorSound;
+    private static AudioClip laughDoorSound;
+    private static AudioClip contaminationSound;
 
     // Call this ONCE in GameController.initialize()
     public static void init() {
@@ -22,6 +26,9 @@ public class SoundManager {
         errorSound = loadSound("click.wav");   // Using click for errors
         moveSound = loadSound("click.wav");// Using click for movement
         loseSound = loadSound("lose_sound.mp3");
+        scareDoorSound = loadOptionalSound("scare.m4a");
+        laughDoorSound = loadOptionalSound("laugh.m4a");
+        contaminationSound = loadOptionalSound("2319.mp3");
     }
 
         // Note: background2.mp3 and background.mp3 are long files,
@@ -53,4 +60,28 @@ public class SoundManager {
     public static void playDamage() { if (damageSound != null) damageSound.play(); }
     public static void playVictory() { if (victorySound != null) victorySound.play(); }
     public static void playLose() { if (loseSound != null) loseSound.play(); }
+    public static void playDoor(Role role) {
+        AudioClip doorSound = role == Role.SCARER ? scareDoorSound : laughDoorSound;
+        if (doorSound != null) {
+            doorSound.play();
+        } else {
+            playCard();
+        }
+    }
+    public static void playContamination() {
+        if (contaminationSound != null) {
+            contaminationSound.play();
+        } else {
+            playLose();
+        }
+    }
+
+    private static AudioClip loadOptionalSound(String fileName) {
+        try {
+            URL url = SoundManager.class.getResource("/MainMenu/assets/audio/" + fileName);
+            return url == null ? null : new AudioClip(url.toExternalForm());
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

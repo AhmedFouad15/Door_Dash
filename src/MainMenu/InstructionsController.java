@@ -1,24 +1,28 @@
 package MainMenu;
 
+import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
+import javafx.animation.ScaleTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.animation.ScaleTransition;
-import javafx.animation.Animation;
 import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 import java.net.URL;
@@ -31,8 +35,6 @@ public class InstructionsController {
     @FXML private Button btnBack;
     @FXML private Pane particlePane;
     @FXML private Label lblTitle;
-
-    // NEW: The VBox inside the ScrollPane where we will put the text
     @FXML private VBox textContainer;
 
     private MediaPlayer backgroundMusicPlayer;
@@ -41,10 +43,8 @@ public class InstructionsController {
 
     @FXML
     public void initialize() {
-
         Platform.runLater(this::createParticles);
 
-        // Load Sound
         try {
             URL musicUrl = getClass().getResource("/MainMenu/assets/audio/background2.mp3");
             Media bgMedia = new Media(musicUrl.toExternalForm());
@@ -53,7 +53,7 @@ public class InstructionsController {
             backgroundMusicPlayer.setVolume(0.3);
             backgroundMusicPlayer.play();
 
-            URL hoverUrl = getClass().getResource("/MainMenu/assets/audio/ui.mp3");
+            URL hoverUrl = getClass().getResource("/MainMenu/assets/audio/UI.mp3");
             hoverSound = new AudioClip(hoverUrl.toExternalForm());
             hoverSound.setVolume(0.5);
 
@@ -74,18 +74,20 @@ public class InstructionsController {
         });
 
         applyAnimations();
-        setupInstructionsText(); // Load the formatted text!
+        setupInstructionsText();
     }
 
     private void applyAnimations() {
         ScaleTransition bgZoom = new ScaleTransition(Duration.seconds(20), bgImage);
-        bgZoom.setToX(1.1); bgZoom.setToY(1.1);
+        bgZoom.setToX(1.1);
+        bgZoom.setToY(1.1);
         bgZoom.setAutoReverse(true);
         bgZoom.setCycleCount(Animation.INDEFINITE);
         bgZoom.play();
 
         ScaleTransition pulse = new ScaleTransition(Duration.seconds(1.5), lblTitle);
-        pulse.setToX(1.05); pulse.setToY(1.05);
+        pulse.setToX(1.05);
+        pulse.setToY(1.05);
         pulse.setAutoReverse(true);
         pulse.setCycleCount(Animation.INDEFINITE);
         pulse.play();
@@ -95,13 +97,16 @@ public class InstructionsController {
 
     private void addHoverEffect(Button button) {
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), button);
-        scaleIn.setToX(1.05); scaleIn.setToY(1.05);
+        scaleIn.setToX(1.05);
+        scaleIn.setToY(1.05);
         ScaleTransition scaleOut = new ScaleTransition(Duration.millis(150), button);
-        scaleOut.setToX(1.0); scaleOut.setToY(1.0);
+        scaleOut.setToX(1.0);
+        scaleOut.setToY(1.0);
 
         DropShadow glow = new DropShadow();
         glow.setColor(Color.web("#00d4ff"));
-        glow.setRadius(20); glow.setSpread(0.4);
+        glow.setRadius(20);
+        glow.setSpread(0.4);
 
         button.setOnMouseEntered(e -> {
             if (hoverSound != null) hoverSound.play();
@@ -127,7 +132,6 @@ public class InstructionsController {
             Circle particle = new Circle(rand.nextDouble() * 5 + 2);
             particle.setFill(Color.web("#00d4ff", 0.5));
             particle.setEffect(new GaussianBlur(rand.nextDouble() * 5 + 5));
-
             particle.setTranslateX(rand.nextDouble() * width);
             particle.setTranslateY(height + (rand.nextDouble() * 200));
             particlePane.getChildren().add(particle);
@@ -137,103 +141,140 @@ public class InstructionsController {
             floatUp.setCycleCount(Animation.INDEFINITE);
 
             FadeTransition pulse = new FadeTransition(Duration.seconds(rand.nextDouble() * 2 + 2), particle);
-            pulse.setFromValue(0.2); pulse.setToValue(0.8);
-            pulse.setAutoReverse(true); pulse.setCycleCount(Animation.INDEFINITE);
+            pulse.setFromValue(0.2);
+            pulse.setToValue(0.8);
+            pulse.setAutoReverse(true);
+            pulse.setCycleCount(Animation.INDEFINITE);
 
-            floatUp.play(); pulse.play();
+            floatUp.play();
+            pulse.play();
         }
     }
 
-    // ==========================================
-    // TEXT FORMATTING LOGIC
-    // ==========================================
-
     private void setupInstructionsText() {
-        addHeader("🎮 DooR DasH: Scare vs Laugh Touchdown");
-        addBody("Welcome to DooR DasH, a fun and competitive board game set in the world of monsters!\n" +
-                "In this game, monsters collect energy from children to power their world. Some monsters use scares, while others use laughter. Your mission is to control a monster, move across the board, collect energy, and defeat your opponent.\n\n" +
-                "But winning is not just about reaching the end — you must also manage your energy carefully.");
+        textContainer.setAlignment(Pos.TOP_CENTER);
 
-        addHeader("🎭 Step 1: Choose Your Side");
-        addBody("At the start of the game, you must choose your role:\n\n" +
-                "👻 SCARER\n" +
-                "• Uses fear and screams to collect energy\n" +
-                "• Follows the traditional way of powering the city\n\n" +
-                "😂 LAUGHER\n" +
-                "• Uses laughter to collect energy\n" +
-                "• A newer and more powerful method\n\n" +
-                "After choosing your side, you will be assigned a random monster from that role, and your opponent will get a monster from the opposite role.");
+        addHeroImage("/MainMenu/assets/images/my_logo.png", 112);
+        addHeader("DoorDasH: Scare vs Laugh Touchdown");
+        addBody("DoorDasH is a competitive strategy board game set across the energy floors of Monstropolis. Two teams race through a 100-cell facility, collecting power from doors, triggering special rooms, and using monster abilities to control the pace of the match.\n\n" +
+                "Every turn matters. Reaching the final cell is only half of the victory: a player must also build enough energy to finish the run.");
 
-        addHeader("👾 Your Monster");
-        addBody("Each monster in the game is unique and has:\n\n" +
-                "🔹 A Type: Affects how your monster behaves (speed, energy, strategy).\n" +
-                "🔹 A Special Ability: Activated during your turn (costs energy). Can freeze opponents, steal energy, or move faster.\n" +
-                "🔹 Starting Energy: Each monster begins with a different amount of energy.");
+        addImageRow(
+                "/MainMenu/assets/images/door_scarer.png",
+                "/MainMenu/assets/images/door_laugher.png",
+                "/MainMenu/assets/images/card_icon.png"
+        );
 
-        addHeader("🧱 The Game Board");
-        addBody("The game board has 100 cells, arranged in a zigzag pattern. You start at cell 0 and aim to reach cell 99. Each cell type has a different effect:");
+        addHeader("Game Objective");
+        addBody("Start at cell 0, move through the board, and be the first player to reach cell 99 with at least 1000 energy. If you arrive at the end without enough energy, the race continues until you can complete both win conditions.");
 
-        addSubHeader("🚪 Door Cells (Most Important)");
-        addBody("✔ If the door matches your role: You and your team gain energy.\n" +
-                "❌ If the door does NOT match: You and your team lose energy.\n" +
-                "⚠️ Important: Each door can only be used once.");
+        addHeader("Choose Your Side");
+        addBody("At setup, choose one of two roles:\n\n" +
+                "SCARER: earns energy from scare doors and loses energy on laugh doors.\n\n" +
+                "LAUGHER: earns energy from laugh doors and loses energy on scare doors.\n\n" +
+                "After the role is selected, the game assigns a matching monster to the first player and an opposing-role monster to the rival player or computer.");
 
-        addSubHeader("👾 Monster Cells (Blue)");
-        addBody("✔ Matches role: Activate power for FREE.\n" +
-                "❌ Different role: You may swap energy with that monster depending on your balance.");
+        addImageRow(
+                "/MainMenu/assets/images/scarer_token.png",
+                "/MainMenu/assets/images/laugher_token.png",
+                "/MainMenu/assets/images/randall.png"
+        );
 
-        addSubHeader("🎴 Card Cells (Red)");
-        addBody("Draw a random card to swap positions, steal energy, restart, shield, or confuse.\n" +
-                "⚠️ Important: Cards are used once and sometimes affect both players.");
+        addHeader("Monster Abilities");
+        addBody("Each monster has a class, a starting energy value, a passive trait, and a power-up. Power-ups cost energy, so strong timing can matter more than using an ability as soon as it is available.\n\n" +
+                "Dashers move faster. Dynamos amplify energy swings. MultiTaskers trade movement for stronger energy control. Schemers pressure opponents by stealing energy across the board.");
 
-        addSubHeader("⚙️ Conveyor Belts (Green) & 🧦 Contamination Socks (Orange)");
-        addBody("Belts move you forward instantly. Socks move you backward and drain your energy!");
+        addHeader("Board Spaces");
+        addSubHeader("Doors");
+        addBody("Doors are the main source of energy. Matching doors reward the active monster and allied stationed monsters. Opposing doors punish the active monster. Each door can only be used once, then it remains marked as Used.");
 
-        addHeader("🎲 Turn System (How to Play)");
-        addBody("Each turn follows these steps:\n" +
-                "1. Power-Up (Optional): Activate ability (costs energy).\n" +
-                "2. Roll the Dice: Move forward 1 to 6 spaces.\n" +
-                "3. Land on a Cell: Trigger the cell's specific effect.\n" +
-                "   • You cannot land on a cell occupied by the opponent.\n" +
-                "4. End Turn: The next player plays.");
+        addSubHeader("Monster Cells");
+        addBody("Stationed monsters create tactical encounters. Friendly encounters activate useful effects, while rival encounters can change energy totals and punish careless movement.");
 
-        addHeader("⚡ Energy System (Very Important)");
-        addBody("Energy is crucial. Gain it via correct doors and cards. Lose it via wrong doors, socks, or opponent attacks.\n\n" +
-                "⚠️ IMPORTANT RULE: You CANNOT win without enough energy, even if you reach the final cell!");
+        addSubHeader("Card Cells");
+        addBody("Card cells draw from a 25-card deck. Cards can grant shields, steal energy, swap positions, restart a monster, or confuse both players. Once the deck is empty, it reloads and shuffles.");
 
-        addHeader("🏆 Winning the Game");
-        addBody("To win, you must meet BOTH conditions:\n" +
-                "✔ Reach the final cell (cell 99)\n" +
-                "✔ Have at least 1000 energy\n\n" +
-                "❗ If you reach the end without enough energy, you must keep playing and move around the board again.");
+        addSubHeader("Conveyors and Contamination Socks");
+        addBody("Conveyors move a monster forward instantly. Contamination socks drag a monster backward and drain energy, turning a strong turn into a setback.");
 
-        addHeader("🎬 Final Words");
-        addBody("This is not just a race... It’s a battle of strategy, timing, and decision-making.\n" +
-                "Will you win using fear? 👻 Or laughter? 😂\n\n" +
-                "The choice is yours.");
+        addHeader("Turn Flow");
+        addBody("1. Activate a power-up if you have enough energy.\n" +
+                "2. Roll the dice.\n" +
+                "3. Move across the board.\n" +
+                "4. Resolve the space where your monster lands.\n" +
+                "5. Pass the turn to the other player.\n\n" +
+                "A monster cannot finish movement on a cell occupied by the opponent.");
+
+        addHeader("Winning");
+        addBody("A player wins only when both conditions are true:\n\n" +
+                "Reach cell 99.\n" +
+                "Have at least 1000 energy.\n\n" +
+                "DoorDasH rewards careful energy planning, smart power-up timing, and quick adaptation when cards or board spaces change the match.");
     }
 
-    // Helper to format Main Headers (Gold)
     private void addHeader(String text) {
         Label header = new Label(text);
         header.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FFD700; -fx-padding: 20 0 5 0;");
         header.setWrapText(true);
+        header.setTextAlignment(TextAlignment.CENTER);
+        header.setAlignment(Pos.CENTER);
+        header.setMaxWidth(650);
         textContainer.getChildren().add(header);
     }
 
-    // Helper to format Subheaders (Cyan)
     private void addSubHeader(String text) {
         Label subHeader = new Label(text);
         subHeader.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #00d4ff; -fx-padding: 10 0 5 0;");
         subHeader.setWrapText(true);
+        subHeader.setTextAlignment(TextAlignment.CENTER);
+        subHeader.setAlignment(Pos.CENTER);
+        subHeader.setMaxWidth(650);
         textContainer.getChildren().add(subHeader);
     }
 
-    // Helper to format Body Text (White)
     private void addBody(String text) {
         Label body = new Label(text);
         body.setStyle("-fx-font-size: 15px; -fx-text-fill: white; -fx-line-spacing: 5px;");
         body.setWrapText(true);
+        body.setTextAlignment(TextAlignment.CENTER);
+        body.setAlignment(Pos.CENTER);
+        body.setMaxWidth(650);
         textContainer.getChildren().add(body);
+    }
+
+    private void addHeroImage(String path, double height) {
+        ImageView imageView = createInstructionImage(path, height);
+        if (imageView != null) {
+            textContainer.getChildren().add(imageView);
+        }
+    }
+
+    private void addImageRow(String... imagePaths) {
+        HBox imageRow = new HBox(18);
+        imageRow.setAlignment(Pos.CENTER);
+        imageRow.setStyle("-fx-padding: 12 0 14 0;");
+
+        for (String imagePath : imagePaths) {
+            ImageView imageView = createInstructionImage(imagePath, 88);
+            if (imageView != null) {
+                imageRow.getChildren().add(imageView);
+            }
+        }
+
+        if (!imageRow.getChildren().isEmpty()) {
+            textContainer.getChildren().add(imageRow);
+        }
+    }
+
+    private ImageView createInstructionImage(String path, double height) {
+        URL imageUrl = getClass().getResource(path);
+        if (imageUrl == null) return null;
+
+        ImageView imageView = new ImageView(new Image(imageUrl.toExternalForm()));
+        imageView.setFitHeight(height);
+        imageView.setFitWidth(height);
+        imageView.setPreserveRatio(true);
+        imageView.setEffect(new DropShadow(18, Color.web("#00d4ff", 0.55)));
+        return imageView;
     }
 }
