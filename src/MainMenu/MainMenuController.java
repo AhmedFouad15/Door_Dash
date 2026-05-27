@@ -84,8 +84,6 @@ public class MainMenuController {
         addHoverEffect(btnInstructions);
         addHoverEffect(btnExit);
 
-        createParticles();
-
         // --- 3. TITLE ANIMATION ---
         ScaleTransition pulse = new ScaleTransition(Duration.seconds(1.5), lblTitle);
         pulse.setToX(1.08);
@@ -104,7 +102,7 @@ public class MainMenuController {
 
         try {
             // Adding the leading slash tells Java to look from the root of the project
-            String imagePath = "/MainMenu/assets/images/background.jpg";
+            String imagePath = "/MainMenu/assets/images/DoorDashBG.jpg";
             URL res = getClass().getResource(imagePath);
 
             if (res != null) {
@@ -241,8 +239,10 @@ public class MainMenuController {
 
     // --- NEW: PARTICLE GENERATOR METHOD ---
     private void createParticles() {
-        // Force the particlePane to match the window size
-        particlePane.setPrefSize(rootPane.getWidth(), rootPane.getHeight());
+        particlePane.getChildren().clear();
+        particlePane.prefWidthProperty().bind(rootPane.widthProperty());
+        particlePane.prefHeightProperty().bind(rootPane.heightProperty());
+        particlePane.setMouseTransparent(true);
 
         Random rand = new Random();
         double width = rootPane.getWidth();

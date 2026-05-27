@@ -22,6 +22,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.effect.BlendMode;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -94,13 +95,23 @@ public class GameController {
     public static boolean singlePlayerMode = false;
     public static String playerDisplayName = "You";
     public static String opponentDisplayName = "Opponent";
+    public static Boolean scriptedDemoTargetWin = null;
+
+    private boolean scriptedDemoActive;
+    private boolean scriptedPowerupUsed;
+    private Boolean scriptedDemoWinForPlayer;
 
     public void initialize() {
         SoundManager.init();
         setupVisuals();
 
         try {
-            gameEngine = new Game(playerRole);
+            scriptedDemoWinForPlayer = scriptedDemoTargetWin;
+            scriptedDemoTargetWin = null;
+            gameEngine = new Game(playerRole, scriptedDemoWinForPlayer != null);
+            if (scriptedDemoWinForPlayer != null) {
+                prepareScriptedDemo();
+            }
             log("SYSTEM: Game Engine Initialized as " + playerRole);
         } catch (Exception e) {
             log("CRITICAL ERROR: Could not load Game Backend.");
@@ -116,6 +127,9 @@ public class GameController {
         setupSpaceShortcut();
         updateUI();
         updateTurnControls();
+        if (scriptedDemoWinForPlayer != null) {
+            startScriptedDemo();
+        }
 
         try {
             // Load background music (loops forever)
@@ -147,7 +161,7 @@ public class GameController {
                         if (!btnRollDice.isDisabled()) {
                             btnRollDice.fire();
                         }
-                    } else if (event.isControlDown() && event.getCode() == KeyCode.W) {
+                    } else if (event.isControlDown() && event.getCode() == KeyCode.V) {
                         event.consume();
                         makeCurrentPlayerWin();
                     }
@@ -270,12 +284,14 @@ public class GameController {
                                     });
 
                                     if (landedCell instanceof ContaminationSock) {
-                                        playContaminationSequence(landedPos, glideToFinalCell);
+                                        showTransportPopup(landedCell, landedPos, activeMonster.getPosition(), () ->
+                                                playContaminationSequence(landedPos, glideToFinalCell));
                                     } else if (landedCell instanceof ConveyorBelt) {
-                                        playConveyorTeleportSequence(landedPos, activeMonster.getPosition(), activeMonster, uiActiveIsPlayer, () -> {
+                                        showTransportPopup(landedCell, landedPos, activeMonster.getPosition(), () ->
+                                                playConveyorTeleportSequence(landedPos, activeMonster.getPosition(), activeMonster, uiActiveIsPlayer, () -> {
                                             refreshBoardNow();
                                             finalizeTurn(activeMonster, inactiveMonster, prePosActive, preEnergyActive, prePosInactive, preEnergyInactive, preShieldActive, preShieldInactive, preRoleActive, preRoleInactive, preConfusionActive, preConfusionInactive, preStationedEnergy, landedCell, landedPos, finalRoll, effectiveMove);
-                                        });
+                                        }));
                                     } else {
                                         glideToFinalCell.run();
                                     }
@@ -316,26 +332,34 @@ public class GameController {
 
         btnPowerup.setOnAction(e -> {
             if (gameEngine == null) return;
-            try {
-                Monster current = gameEngine.getCurrent();
-                String powerupName = getMonsterPowerupName(current);
-                Map<Monster, Integer> preStationedEnergy = snapshotStationedMonsterEnergy();
-                gameEngine.usePowerup();
-                SoundManager.playCard();
-                log("=================================");
-                log("⚡ " + current.getName() + " activated " + powerupName + "!");
-                log("   -> Cost: 500 Energy.");
-                log("   -> " + getMonsterPowerupStatus(current));
-                logStationedMonsterEnergyChanges(preStationedEnergy);
-                StackPane playerCell = boardRenderer.getCellVisual(current.getPosition());
-                AnimationManager.animatePowerupActivate(playerCell, powerupName);
-                AnimationManager.animateFloatingText(playerCell, "-500 ENERGY", false);
-            } catch (OutOfEnergyException ex) {
+            Monster current = gameEngine.getCurrent();
+            if (current.getEnergy() < Constants.POWERUP_COST) {
                 SoundManager.playError();
-                showError("Not Enough Energy", ex.getMessage());
+                showError("Not Enough Energy", "Not enough energy to use powerup");
+                return;
             }
-            updateUI();
-            updateTurnControls();
+            String powerupName = getMonsterPowerupName(current);
+            showPowerupPopup(current, powerupName, getMonsterPowerupDescription(current), () -> {
+                try {
+                    Map<Monster, Integer> preStationedEnergy = snapshotStationedMonsterEnergy();
+                    gameEngine.usePowerup();
+                    SoundManager.playCard();
+                    log("=================================");
+                    log("⚡ " + current.getName() + " activated " + powerupName + "!");
+                    log("   -> Cost: 500 Energy.");
+                    log("   -> " + getMonsterPowerupStatus(current));
+                    logStationedMonsterEnergyChanges(preStationedEnergy);
+                    StackPane playerCell = boardRenderer.getCellVisual(current.getPosition());
+                    AnimationManager.animatePowerupActivate(playerCell, powerupName);
+                    AnimationManager.animateFloatingText(playerCell, "-500 ENERGY", false);
+                } catch (OutOfEnergyException ex) {
+                    SoundManager.playError();
+                    showError("Not Enough Energy", ex.getMessage());
+                }
+                updateUI();
+                updateTurnControls();
+                continueScriptedDemoSoon();
+            });
         });
 
         if (btnStationedDetails != null) {
@@ -610,6 +634,7 @@ public class GameController {
         Node monsterVisual = findChildById(sourceCell, activeVisualId);
 
         focusMoveCameraOnPosition(sourcePos, 260);
+        SoundManager.playHappy();
         animateTeleportDoor(sourceCell, true, monsterVisual, () -> {
             if (monsterVisual != null) {
                 sourceCell.getChildren().remove(monsterVisual);
@@ -786,6 +811,10 @@ public class GameController {
 
     private void finishTurnControls() {
         updateTurnControls();
+        if (scriptedDemoActive) {
+            continueScriptedDemoSoon();
+            return;
+        }
         scheduleComputerTurnIfNeeded();
     }
 
@@ -815,6 +844,114 @@ public class GameController {
         computerTurnDelay.play();
     }
 
+    private void prepareScriptedDemo() {
+        if (gameEngine == null) return;
+        gameEngine.getPlayer().setEnergy(1400);
+        gameEngine.getOpponent().setEnergy(1400);
+        gameEngine.setScriptedRolls(
+                1, 3,
+                3, 4,
+                2, 4,
+                1, 4,
+                2, 6,
+                4, 1,
+                5, 6,
+                6, 1,
+                5, 6,
+                3, 1,
+                1, 2,
+                6, 4,
+                1, 2
+        );
+    }
+
+    private void startScriptedDemo() {
+        startScriptedDemo(scriptedDemoWinForPlayer != null ? scriptedDemoWinForPlayer : true);
+    }
+
+    private void startScriptedDemo(boolean winForPlayer) {
+        if (gameEngine == null || gameEngine.getWinner() != null || scriptedDemoActive) return;
+        scriptedDemoWinForPlayer = winForPlayer;
+        scriptedDemoActive = true;
+        scriptedPowerupUsed = false;
+        prepareScriptedDemo();
+        updateStatusPanelsOnly();
+        continueScriptedDemoSoon();
+    }
+
+    private void toggleScriptedDemo(boolean winForPlayer) {
+        if (gameEngine == null || gameEngine.getWinner() != null) return;
+
+        if (scriptedDemoActive && scriptedDemoWinForPlayer != null && scriptedDemoWinForPlayer == winForPlayer) {
+            disableScriptedDemo();
+            showShortcutToast((winForPlayer ? "Win" : "Lose") + " State Disabled", "#ff003c");
+            return;
+        }
+
+        if (scriptedDemoActive) {
+            disableScriptedDemo();
+        }
+
+        startScriptedDemo(winForPlayer);
+        showShortcutToast((winForPlayer ? "Win" : "Lose") + " State Activated", winForPlayer ? "#00d4ff" : "#ffd700");
+    }
+
+    private void disableScriptedDemo() {
+        scriptedDemoActive = false;
+        scriptedDemoWinForPlayer = null;
+        scriptedPowerupUsed = false;
+        if (computerTurnDelay != null) {
+            computerTurnDelay.stop();
+        }
+        if (gameEngine != null) {
+            gameEngine.clearScriptedRolls();
+        }
+        updateTurnControls();
+    }
+
+    private void continueScriptedDemoSoon() {
+        if (!scriptedDemoActive || gameEngine == null || gameEngine.getWinner() != null) return;
+
+        PauseTransition pause = new PauseTransition(Duration.millis(650));
+        pause.setOnFinished(event -> runNextScriptedAction());
+        pause.play();
+    }
+
+    private void runNextScriptedAction() {
+        if (!scriptedDemoActive || gameEngine == null || gameEngine.getWinner() != null) return;
+
+        if (!scriptedPowerupUsed && gameEngine.getCurrent().getEnergy() >= Constants.POWERUP_COST) {
+            scriptedPowerupUsed = true;
+            btnPowerup.setDisable(false);
+            btnPowerup.fire();
+            return;
+        }
+
+        if (gameEngine.hasScriptedRolls()) {
+            btnRollDice.setDisable(false);
+            if (gameEngine.getCurrent() != gameEngine.getPlayer()) {
+                btnRollDice.fire();
+            }
+            return;
+        }
+
+        finishScriptedDemo();
+    }
+
+    private void finishScriptedDemo() {
+        if (gameEngine == null) return;
+        scriptedDemoActive = false;
+
+        Monster winner = scriptedDemoWinForPlayer == null || scriptedDemoWinForPlayer
+                ? gameEngine.getPlayer()
+                : gameEngine.getOpponent();
+        winner.setPosition(Constants.WINNING_POSITION);
+        winner.setEnergy(Math.max(winner.getEnergy(), Constants.WINNING_ENERGY));
+        refreshBoardNow();
+        updateStatusPanelsOnly();
+        checkWinCondition();
+    }
+
     private void makeCurrentPlayerWin() {
         if (gameEngine == null || gameEngine.getWinner() != null) return;
 
@@ -827,7 +964,7 @@ public class GameController {
         current.setEnergy(Constants.WINNING_ENERGY);
         refreshBoardNow();
         updateStatusPanelsOnly();
-        log("SHORTCUT: " + getDisplayName(current) + " wins by Ctrl+W.");
+        log("SHORTCUT: " + getDisplayName(current) + " wins by Ctrl+V.");
         checkWinCondition();
     }
 
@@ -1153,6 +1290,153 @@ public class GameController {
         if (actionLog != null) actionLog.appendText(message + "\n");
     }
 
+    private void showTransportPopup(Cell cell, int fromCell, int toCell, Runnable onClose) {
+        int distance = toCell - fromCell;
+        String direction = distance >= 0 ? "Up " : "Down ";
+        String title = cell instanceof ConveyorBelt ? "Conveyor Belt" : "Contamination Sock";
+        String details = "From Cell " + fromCell + " to Cell " + toCell + " (" + direction + Math.abs(distance) + " Cell)";
+        String body = cell instanceof ConveyorBelt
+                ? "The belt carries the character to a new door lane."
+                : "CDA cleanup pulls the character away and applies the sock penalty.";
+        showFeaturePopup(title, details + "\n" + body, getCellImagePath(cell), onClose);
+    }
+
+    private void showShortcutToast(String message, String accentColor) {
+        if (rootPane == null) return;
+
+        Label toast = new Label(message);
+        toast.setStyle(
+                "-fx-background-color: rgba(8, 18, 28, 0.94); " +
+                        "-fx-border-color: " + accentColor + "; " +
+                        "-fx-border-width: 2; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-border-radius: 8; " +
+                        "-fx-padding: 10 14 10 14; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-font-weight: bold;"
+        );
+        toast.setEffect(new DropShadow(18, Color.web(accentColor)));
+        StackPane.setAlignment(toast, Pos.TOP_RIGHT);
+        StackPane.setMargin(toast, new Insets(72, 22, 0, 0));
+        toast.setOpacity(0);
+
+        rootPane.getChildren().removeIf(node -> "scripted_demo_toast".equals(node.getId()));
+        toast.setId("scripted_demo_toast");
+        rootPane.getChildren().add(toast);
+        toast.toFront();
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(140), toast);
+        fadeIn.setToValue(1);
+
+        PauseTransition hold = new PauseTransition(Duration.seconds(1.8));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(event -> rootPane.getChildren().remove(toast));
+
+        fadeIn.setOnFinished(event -> hold.play());
+        hold.setOnFinished(event -> fadeOut.play());
+        fadeIn.play();
+    }
+
+    private void showPowerupPopup(Monster monster, String title, String details, Runnable onClose) {
+        showFeaturePopup(title, monster.getName() + " activates a power-up.\n" + details,
+                getMonsterImagePath(monster), onClose);
+    }
+
+    private void showFeaturePopup(String title, String details, String imagePath, Runnable onClose) {
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0,0,0,0.7);");
+
+        VBox cardVisual = new VBox(14);
+        cardVisual.setAlignment(Pos.CENTER);
+        cardVisual.setMaxSize(280, 390);
+        cardVisual.setPadding(new Insets(24));
+        cardVisual.setStyle(
+                "-fx-background-color: #2c3e50; " +
+                        "-fx-border-color: #ff00ff; -fx-border-width: 4; -fx-border-radius: 14; " +
+                        "-fx-background-radius: 14; -fx-padding: 24;"
+        );
+        cardVisual.setEffect(new DropShadow(24, Color.MAGENTA));
+
+        ImageView image = new ImageView();
+        URL imageUrl = getClass().getResource(imagePath);
+        if (imageUrl != null) {
+            image.setImage(new Image(imageUrl.toExternalForm()));
+            image.setFitHeight(96);
+            image.setPreserveRatio(true);
+            image.setEffect(new DropShadow(18, Color.GOLD));
+        }
+
+        String popupHeader = imagePath.contains("conveyor") || imagePath.contains("sock") ? "CELL EFFECT!" : "POWER-UP!";
+        Label headerLabel = new Label(popupHeader);
+        headerLabel.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 21px; -fx-font-weight: bold;");
+
+        Label titleLabel = new Label(title);
+        titleLabel.setWrapText(true);
+        titleLabel.setAlignment(Pos.CENTER);
+        titleLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        titleLabel.setMaxWidth(230);
+        titleLabel.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label detailLabel = new Label(details);
+        detailLabel.setWrapText(true);
+        detailLabel.setMaxWidth(230);
+        detailLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        detailLabel.setStyle("-fx-text-fill: white; -fx-font-size: 15px; -fx-line-spacing: 3px;");
+
+        Label hint = new Label("(Click to Continue)");
+        hint.setStyle("-fx-text-fill: gray; -fx-font-size: 11px;");
+
+        cardVisual.getChildren().addAll(headerLabel, image, titleLabel, detailLabel, hint);
+        overlay.getChildren().add(cardVisual);
+        rootPane.getChildren().add(overlay);
+
+        ScaleTransition pop = new ScaleTransition(Duration.millis(220), cardVisual);
+        cardVisual.setScaleX(0);
+        cardVisual.setScaleY(0);
+        pop.setToX(1);
+        pop.setToY(1);
+        pop.play();
+
+        final boolean[] closing = {false};
+        overlay.setOnMouseClicked(event -> {
+            event.consume();
+            if (closing[0]) return;
+            closing[0] = true;
+            ScaleTransition popOut = new ScaleTransition(Duration.millis(200), cardVisual);
+            popOut.setToX(0);
+            popOut.setToY(0);
+            popOut.setOnFinished(done -> {
+                rootPane.getChildren().remove(overlay);
+                if (onClose != null) onClose.run();
+            });
+            popOut.play();
+        });
+    }
+
+    private String getCellImagePath(Cell cell) {
+        if (cell instanceof ConveyorBelt) return "/MainMenu/assets/images/conveyor_icon.png";
+        if (cell instanceof ContaminationSock) return "/MainMenu/assets/images/sock_icon.png";
+        if (cell instanceof CardCell) return "/MainMenu/assets/images/card_icon.png";
+        return "/MainMenu/assets/images/my_logo.png";
+    }
+
+    private String getMonsterImagePath(Monster monster) {
+        if (monster == null) return "/MainMenu/assets/images/my_logo.png";
+        String name = monster.getName();
+        if ("James P. Sullivan".equals(name)) return "/MainMenu/assets/images/scarer_token.png";
+        if ("Mike Wazowski".equals(name)) return "/MainMenu/assets/images/laugher_token.png";
+        if ("Randall Boggs".equals(name)) return "/MainMenu/assets/images/randall.png";
+        if ("Celia Mae".equals(name)) return "/MainMenu/assets/images/celia.png";
+        if ("Henry J. Waternoose".equals(name)) return "/MainMenu/assets/images/Henry.png";
+        if ("Roz".equals(name)) return "/MainMenu/assets/images/roz.png";
+        if ("Fungus".equals(name)) return "/MainMenu/assets/images/fungus.png";
+        if ("Yeti".equals(name)) return "/MainMenu/assets/images/yeti.png";
+        return monster.getOriginalRole() == Role.SCARER ? "/MainMenu/assets/images/scarer_token.png" : "/MainMenu/assets/images/laugher_token.png";
+    }
+
     private void showError(String title, String message) {
         // Platform.runLater ensures the dialog waits until the animation pulse is over
         Platform.runLater(() -> {
@@ -1394,9 +1678,18 @@ public class GameController {
                         "-fx-border-radius: 6;"
         );
 
+        ImageView portrait = new ImageView(MonsterRenderer.getMonsterImage(monster));
+        portrait.setFitWidth(48);
+        portrait.setFitHeight(48);
+        portrait.setPreserveRatio(true);
+        portrait.setEffect(new DropShadow(14, Color.web("#00d4ff")));
+
         Label name = new Label(monster.getName());
         name.setWrapText(true);
         name.setStyle("-fx-text-fill: #ffd700; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        HBox titleRow = new HBox(12, portrait, name);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
 
         HBox meta = new HBox(10);
         meta.setAlignment(Pos.CENTER_LEFT);
@@ -1410,7 +1703,7 @@ public class GameController {
         Label powerup = createStationedLine("Power-Up", getMonsterPowerupDescription(monster));
         Label status = createStationedLine("Status", getMonsterPowerupStatus(monster));
 
-        card.getChildren().addAll(name, meta, passive, powerup, status);
+        card.getChildren().addAll(titleRow, meta, passive, powerup, status);
         return card;
     }
 

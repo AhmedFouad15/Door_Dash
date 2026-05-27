@@ -17,6 +17,7 @@ public class SoundManager {
     private static AudioClip laughDoorSound;
     private static AudioClip contaminationSound;
     private static AudioClip lose_game;
+    private static AudioClip happySound;
 
     // Call this ONCE in GameController.initialize()
     public static void init() {
@@ -31,6 +32,7 @@ public class SoundManager {
         laughDoorSound = loadOptionalSound("laugh.m4a");
         contaminationSound = loadOptionalSound("2319.mp3");
         lose_game = loadOptionalSound("lose_game.mp3");
+        happySound = loadOptionalSound("happy.mp3");
     }
 
         // Note: background2.mp3 and background.mp3 are long files,
@@ -76,6 +78,14 @@ public class SoundManager {
             contaminationSound.play();
         } else {
             playLose();
+        }
+    }
+
+    public static void playHappy() {
+        if (happySound != null) {
+            happySound.play();
+        } else {
+            playCard();
         }
     }
 

@@ -2,6 +2,7 @@ package MainMenu;
 
 import game.engine.Role;
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -17,6 +18,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.input.KeyCode;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -36,6 +38,7 @@ public class GameSetupWindow {
 
     public static void display(StackPane hostRoot) {
         if (hostRoot == null) return;
+        GameController.scriptedDemoTargetWin = null;
 
         StackPane overlay = new StackPane();
         overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.72);");
@@ -61,6 +64,14 @@ public class GameSetupWindow {
         panel.getChildren().addAll(createBrandHeader(), content);
         overlay.getChildren().add(panel);
         hostRoot.getChildren().add(overlay);
+        overlay.setFocusTraversable(true);
+        overlay.setOnKeyPressed(event -> {
+            if (event.isControlDown() && (event.getCode() == KeyCode.W || event.getCode() == KeyCode.L)) {
+                event.consume();
+                toggleScriptedDemoSelection(overlay, event.getCode() == KeyCode.W);
+            }
+        });
+        overlay.requestFocus();
 
         showModeSelection(content, overlay, hostRoot);
         animateIn(overlay, panel);
@@ -121,7 +132,10 @@ public class GameSetupWindow {
             showNameEntry(content, overlay, hostRoot);
         });
 
-        backBtn.setOnAction(e -> closeOverlay(overlay, hostRoot));
+        backBtn.setOnAction(e -> {
+            GameController.scriptedDemoTargetWin = null;
+            closeOverlay(overlay, hostRoot);
+        });
 
         content.getChildren().addAll(title, hint, modeButtons, backBtn);
     }
@@ -159,20 +173,18 @@ public class GameSetupWindow {
 
         Label rulesText = new Label(
                 "Welcome to Monstropolis, where every move is a race for energy and survival.\n\n" +
-                        "First, select your role:\n" +
-                        "  * SCARER - Gain energy through screams\n" +
-                        "  * LAUGHER - Gain energy through laughter\n" +
-                        "After choosing, you will be assigned a monster automatically.\n\n" +
-                        "How to Play:\n" +
-                        "1. Use your power-up when you have enough energy.\n" +
-                        "2. Roll the dice and move across the board.\n" +
-                        "3. Doors, monster cells, cards, conveyor belts, and contamination socks can all change the turn.\n\n" +
-                        "Important Rules:\n" +
-                        "1. You cannot land on a cell occupied by the opponent.\n" +
-                        "2. Some effects impact both players.\n" +
-                        "3. Shields can block negative energy effects.\n\n" +
-                        "Winning Condition:\n" +
-                        "Reach the final cell and have at least 1000 energy."
+                        "Mission Brief\n" +
+                        "DoorDasH is a race across Monstropolis. Each team collects energy, reacts to board events, and tries to reach the final door with enough power to win.\n\n" +
+                        "Turn Flow\n" +
+                        "1. Activate a power-up when you have at least 500 energy.\n" +
+                        "2. Roll the dice and move to your landing cell.\n" +
+                        "3. Resolve the cell: doors change energy, cards trigger surprises, conveyors move you forward, contamination socks pull you back, and stationed monsters can change the match.\n\n" +
+                        "Board Rules\n" +
+                        "1. A player cannot finish a move on the opponent's cell.\n" +
+                        "2. Door energy can help matching roles and punish opposite roles.\n" +
+                        "3. Shields block one negative energy effect, then break.\n\n" +
+                        "Win Condition\n" +
+                        "Reach cell 99 with at least 1000 energy."
         );
         rulesText.setWrapText(true);
         rulesText.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-line-spacing: 4px;");
@@ -282,6 +294,11 @@ public class GameSetupWindow {
                         "-fx-font-size: 16px; " +
                         "-fx-font-weight: bold; " +
                         "-fx-background-radius: 8; " +
+                        "-fx-border-color: transparent; " +
+                        "-fx-border-width: 0; " +
+                        "-fx-focus-color: transparent; " +
+                        "-fx-faint-focus-color: transparent; " +
+                        "-fx-background-insets: 0; " +
                         "-fx-cursor: hand;"
         );
         return button;
@@ -314,6 +331,56 @@ public class GameSetupWindow {
         GameController.playerRole = role;
         closeOverlay(overlay, hostRoot);
         SceneManager.switchScene("GameScreen.fxml");
+    }
+
+    private static void toggleScriptedDemoSelection(StackPane overlay, boolean winState) {
+        boolean currentlySelected = GameController.scriptedDemoTargetWin != null && GameController.scriptedDemoTargetWin == winState;
+
+        if (currentlySelected) {
+            GameController.scriptedDemoTargetWin = null;
+            showSetupToast(overlay, (winState ? "Win" : "Lose") + " State Disabled", "#ff003c");
+            return;
+        }
+
+        GameController.scriptedDemoTargetWin = winState;
+        showSetupToast(overlay, (winState ? "Win" : "Lose") + " State Activated", winState ? "#00d4ff" : "#ffd700");
+    }
+
+    private static void showSetupToast(StackPane overlay, String message, String accentColor) {
+        Label toast = new Label(message);
+        toast.setStyle(
+                "-fx-background-color: rgba(8, 18, 28, 0.94); " +
+                        "-fx-border-color: " + accentColor + "; " +
+                        "-fx-border-width: 2; " +
+                        "-fx-background-radius: 8; " +
+                        "-fx-border-radius: 8; " +
+                        "-fx-padding: 10 14 10 14; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-font-weight: bold;"
+        );
+        toast.setEffect(new DropShadow(18, Color.web(accentColor)));
+        StackPane.setAlignment(toast, Pos.TOP_RIGHT);
+        StackPane.setMargin(toast, new Insets(22, 22, 0, 0));
+        toast.setOpacity(0);
+
+        overlay.getChildren().removeIf(node -> "setup_scripted_demo_toast".equals(node.getId()));
+        toast.setId("setup_scripted_demo_toast");
+        overlay.getChildren().add(toast);
+        toast.toFront();
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(140), toast);
+        fadeIn.setToValue(1);
+
+        PauseTransition hold = new PauseTransition(Duration.seconds(1.8));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(event -> overlay.getChildren().remove(toast));
+
+        fadeIn.setOnFinished(event -> hold.play());
+        hold.setOnFinished(event -> fadeOut.play());
+        fadeIn.play();
     }
 
     private static void animateIn(StackPane overlay, Node panel) {

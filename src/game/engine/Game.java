@@ -3,6 +3,8 @@ package game.engine;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 
 import game.engine.dataloader.DataLoader;
@@ -16,9 +18,19 @@ public class Game {
 	private Monster player;
 	private Monster opponent;
 	private Monster current;
+	private Queue<Integer> scriptedRolls;
+	private boolean deterministicSelection;
 	
 	public Game(Role playerRole) throws IOException {
+		this(playerRole, false);
+	}
+
+	public Game(Role playerRole, boolean deterministicSelection) throws IOException {
+		this.deterministicSelection = deterministicSelection;
 		this.board = new Board(DataLoader.readCards());
+		if (deterministicSelection) {
+			Board.reloadCardsDeterministic();
+		}
 		
 		this.allMonsters = DataLoader.readMonsters();
 		
@@ -58,6 +70,24 @@ public class Game {
 	}
 	
 	private Monster selectRandomMonsterByRole(Role role) {
+		if (deterministicSelection) {
+			for (Monster monster : allMonsters) {
+				if (monster.getRole() == role && role == Role.SCARER && monster instanceof Schemer) {
+					return monster;
+				}
+			}
+			for (Monster monster : allMonsters) {
+				if (monster.getRole() == role && monster instanceof Dynamo) {
+					return monster;
+				}
+			}
+			for (Monster monster : allMonsters) {
+				if (monster.getRole() == role) {
+					return monster;
+				}
+			}
+		}
+
 		Collections.shuffle(allMonsters);
 	    return allMonsters.stream()
 	    		.filter(m -> m.getRole() == role)
@@ -70,8 +100,30 @@ public class Game {
 	}
 
 	private int rollDice() {
+		if (scriptedRolls != null && !scriptedRolls.isEmpty()) {
+			return scriptedRolls.poll();
+		}
 		Random rand = new Random();
 		return rand.nextInt(6) + 1;
+	}
+
+	public void setScriptedRolls(int... rolls) {
+		scriptedRolls = new LinkedList<>();
+		for (int roll : rolls) {
+			if (roll >= 1 && roll <= 6) {
+				scriptedRolls.add(roll);
+			}
+		}
+	}
+
+	public boolean hasScriptedRolls() {
+		return scriptedRolls != null && !scriptedRolls.isEmpty();
+	}
+
+	public void clearScriptedRolls() {
+		if (scriptedRolls != null) {
+			scriptedRolls.clear();
+		}
 	}
 	
 	public void usePowerup() throws OutOfEnergyException {

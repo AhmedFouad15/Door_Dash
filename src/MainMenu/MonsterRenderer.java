@@ -116,7 +116,7 @@ public class MonsterRenderer {
         return "rgba(90, 90, 90, 0.9)";
     }
 
-    private static Image getMonsterImage(Monster monster) {
+    public static Image getMonsterImage(Monster monster) {
         String name = monster.getName();
         if ("James P. Sullivan".equals(name)) return SULLEY_IMAGE;
         if ("Mike Wazowski".equals(name)) return MIKE_IMAGE;

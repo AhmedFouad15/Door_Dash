@@ -233,43 +233,47 @@ public class AnimationManager {
         overlay.setStyle("-fx-background-color: rgba(0,0,0,0.7);");
 
         // 2. Create the Card Container
-        javafx.scene.layout.VBox cardVisual = new javafx.scene.layout.VBox(20);
+        javafx.scene.layout.VBox cardVisual = new javafx.scene.layout.VBox(16);
         cardVisual.setAlignment(javafx.geometry.Pos.CENTER);
-        cardVisual.setMaxSize(300, 450);
+        cardVisual.setMaxSize(280, 390);
         cardVisual.setStyle(
                 "-fx-background-color: #2c3e50; " +
-                        "-fx-border-color: #ff00ff; -fx-border-width: 5; -fx-border-radius: 15; " +
-                        "-fx-background-radius: 15; -fx-padding: 30;"
+                        "-fx-border-color: #ff00ff; -fx-border-width: 4; -fx-border-radius: 14; " +
+                        "-fx-background-radius: 14; -fx-padding: 24;"
         );
-        cardVisual.setEffect(new javafx.scene.effect.DropShadow(30, javafx.scene.paint.Color.MAGENTA));
+        cardVisual.setEffect(new javafx.scene.effect.DropShadow(24, javafx.scene.paint.Color.MAGENTA));
 
         // 3. Create the "Back" of the card (Visible first)
         javafx.scene.control.Label backLabel = new javafx.scene.control.Label("?");
-        backLabel.setStyle("-fx-font-size: 100px; -fx-text-fill: white; -fx-font-weight: bold;");
+        backLabel.setStyle("-fx-font-size: 82px; -fx-text-fill: white; -fx-font-weight: bold;");
         javafx.scene.control.Label clickHint = new javafx.scene.control.Label("(Click to Reveal)");
-        clickHint.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+        clickHint.setStyle("-fx-text-fill: gray; -fx-font-size: 13px;");
 
-        javafx.scene.layout.VBox backContent = new javafx.scene.layout.VBox(10, backLabel, clickHint);
+        javafx.scene.layout.VBox backContent = new javafx.scene.layout.VBox(8, backLabel, clickHint);
         backContent.setAlignment(javafx.geometry.Pos.CENTER);
         cardVisual.getChildren().add(backContent);
 
         // 4. Create the "Front" Content (Hidden initially)
-        javafx.scene.layout.VBox frontContent = new javafx.scene.layout.VBox(20);
+        javafx.scene.layout.VBox frontContent = new javafx.scene.layout.VBox(14);
         frontContent.setAlignment(javafx.geometry.Pos.CENTER);
 
         javafx.scene.control.Label title = new javafx.scene.control.Label("CARD DRAWN!");
-        title.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 24px; -fx-font-weight: bold;");
+        title.setStyle("-fx-text-fill: #ff00ff; -fx-font-size: 21px; -fx-font-weight: bold;");
 
         javafx.scene.control.Label name = new javafx.scene.control.Label(cardName);
-        name.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 26px; -fx-font-weight: bold;");
+        name.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 22px; -fx-font-weight: bold;");
+        name.setWrapText(true);
+        name.setMaxWidth(230);
+        name.setAlignment(javafx.geometry.Pos.CENTER);
+        name.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
 
         javafx.scene.control.Label effect = new javafx.scene.control.Label(cardEffect);
-        effect.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        effect.setStyle("-fx-text-fill: white; -fx-font-size: 15px;");
         effect.setWrapText(true);
         effect.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
 
         javafx.scene.control.Label closeHint = new javafx.scene.control.Label("(Click to Continue)");
-        closeHint.setStyle("-fx-text-fill: gray; -fx-font-size: 12px;");
+        closeHint.setStyle("-fx-text-fill: gray; -fx-font-size: 11px;");
 
         frontContent.getChildren().addAll(title, name, effect, closeHint);
 

@@ -116,6 +116,10 @@ public class Board {
 		cards = new ArrayList<>(originalCards);
 		Collections.shuffle(cards);
     }
+
+	public static void reloadCardsDeterministic() {
+		cards = new ArrayList<>(originalCards);
+    }
 	
 	public static Card drawCard() {
 		if (cards.isEmpty()) 
