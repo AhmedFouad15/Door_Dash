@@ -19,6 +19,7 @@ public class Game {
 	private Monster opponent;
 	private Monster current;
 	private Queue<Integer> scriptedRolls;
+	private Monster scriptedRollTarget;
 	private boolean deterministicSelection;
 	
 	public Game(Role playerRole) throws IOException {
@@ -100,7 +101,8 @@ public class Game {
 	}
 
 	private int rollDice() {
-		if (scriptedRolls != null && !scriptedRolls.isEmpty()) {
+		if (scriptedRolls != null && !scriptedRolls.isEmpty() &&
+				(scriptedRollTarget == null || current == scriptedRollTarget)) {
 			return scriptedRolls.poll();
 		}
 		Random rand = new Random();
@@ -108,6 +110,11 @@ public class Game {
 	}
 
 	public void setScriptedRolls(int... rolls) {
+		setScriptedRollsFor(null, rolls);
+	}
+
+	public void setScriptedRollsFor(Monster target, int... rolls) {
+		scriptedRollTarget = target;
 		scriptedRolls = new LinkedList<>();
 		for (int roll : rolls) {
 			if (roll >= 1 && roll <= 6) {
@@ -120,10 +127,15 @@ public class Game {
 		return scriptedRolls != null && !scriptedRolls.isEmpty();
 	}
 
+	public int getScriptedRollsRemaining() {
+		return scriptedRolls == null ? 0 : scriptedRolls.size();
+	}
+
 	public void clearScriptedRolls() {
 		if (scriptedRolls != null) {
 			scriptedRolls.clear();
 		}
+		scriptedRollTarget = null;
 	}
 	
 	public void usePowerup() throws OutOfEnergyException {

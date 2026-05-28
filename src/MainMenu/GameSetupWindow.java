@@ -172,22 +172,25 @@ public class GameSetupWindow {
         title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #00d4ff;");
 
         Label rulesText = new Label(
-                "Welcome to Monstropolis, where every move is a race for energy and survival.\n\n" +
-                        "Mission Brief\n" +
-                        "DoorDasH is a race across Monstropolis. Each team collects energy, reacts to board events, and tries to reach the final door with enough power to win.\n\n" +
-                        "Turn Flow\n" +
-                        "1. Activate a power-up when you have at least 500 energy.\n" +
-                        "2. Roll the dice and move to your landing cell.\n" +
-                        "3. Resolve the cell: doors change energy, cards trigger surprises, conveyors move you forward, contamination socks pull you back, and stationed monsters can change the match.\n\n" +
-                        "Board Rules\n" +
-                        "1. A player cannot finish a move on the opponent's cell.\n" +
-                        "2. Door energy can help matching roles and punish opposite roles.\n" +
-                        "3. Shields block one negative energy effect, then break.\n\n" +
-                        "Win Condition\n" +
+                "MISSION BRIEF\n" +
+                        "Race through Monstropolis, collect energy, and reach the final door before your opponent.\n\n" +
+                        "TURN FLOW\n" +
+                        "1. Use a power-up when you have at least 500 energy.\n" +
+                        "2. Roll the dice and move to the landing cell.\n" +
+                        "3. Resolve the cell effect before the next turn begins.\n\n" +
+                        "BOARD EVENTS\n" +
+                        "Doors reward matching roles and punish opposite roles.\n" +
+                        "Cards create special effects and surprises.\n" +
+                        "Conveyor belts move you forward.\n" +
+                        "Contamination socks pull you back and cost energy.\n" +
+                        "Stationed monsters can change energy or trigger abilities.\n\n" +
+                        "WIN CONDITION\n" +
                         "Reach cell 99 with at least 1000 energy."
         );
         rulesText.setWrapText(true);
-        rulesText.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-line-spacing: 4px;");
+        rulesText.setAlignment(Pos.CENTER);
+        rulesText.setTextAlignment(TextAlignment.CENTER);
+        rulesText.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-line-spacing: 5px;");
         rulesText.setMaxWidth(520);
 
         ScrollPane scrollPane = new ScrollPane(rulesText);
@@ -244,6 +247,9 @@ public class GameSetupWindow {
         button.setPrefHeight(42);
         button.setStyle(
                 "-fx-background-color: #00d4ff; " +
+                        "-fx-border-color: transparent; -fx-border-width: 0; " +
+                        "-fx-focus-color: transparent; -fx-faint-focus-color: transparent; " +
+                        "-fx-background-insets: 0; " +
                         "-fx-text-fill: #061018; " +
                         "-fx-font-weight: bold; " +
                         "-fx-font-size: 14px; " +
@@ -259,7 +265,9 @@ public class GameSetupWindow {
         button.setPrefHeight(42);
         button.setStyle(
                 "-fx-background-color: rgba(255,255,255,0.12); " +
-                        "-fx-border-color: rgba(255,255,255,0.35); " +
+                        "-fx-border-color: transparent; -fx-border-width: 0; " +
+                        "-fx-focus-color: transparent; -fx-faint-focus-color: transparent; " +
+                        "-fx-background-insets: 0; " +
                         "-fx-text-fill: white; " +
                         "-fx-font-weight: bold; " +
                         "-fx-background-radius: 6; " +
@@ -275,6 +283,9 @@ public class GameSetupWindow {
         button.setPrefHeight(70);
         button.setStyle(
                 "-fx-background-color: " + background + "; " +
+                        "-fx-border-color: transparent; -fx-border-width: 0; " +
+                        "-fx-focus-color: transparent; -fx-faint-focus-color: transparent; " +
+                        "-fx-background-insets: 0; " +
                         "-fx-text-fill: " + textColor + "; " +
                         "-fx-font-size: 18px; " +
                         "-fx-font-weight: bold; " +

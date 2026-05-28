@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import game.engine.cards.Card;
+import game.engine.cards.SwapperCard;
 import game.engine.cells.*;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.monsters.Monster;
@@ -126,6 +127,16 @@ public class Board {
 			reloadCards();
 		
 		return cards.remove(0);
+	}
+
+	public static void moveSwapperCardsAwayFromTop() {
+		if (cards == null || cards.size() <= 1) return;
+
+		int checked = 0;
+		while (!cards.isEmpty() && cards.get(0) instanceof SwapperCard && checked < cards.size()) {
+			cards.add(cards.remove(0));
+			checked++;
+		}
 	}
 
 	public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {

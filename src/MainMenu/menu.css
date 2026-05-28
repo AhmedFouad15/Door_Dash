@@ -18,8 +18,11 @@
 
 .menu-button {
     -fx-background-color: rgba(50,50,70,0.9);
-    -fx-border-color: #8a6cff;
-    -fx-border-width: 2px;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-background-insets: 0;
 
     -fx-text-fill: white;
 
@@ -38,9 +41,13 @@
 .button {
     -fx-background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
     -fx-background-radius: 15;                     /* Rounded corners */
-    -fx-border-color: #00d4ff; /* Blue border */
-    -fx-border-width: 2;                           /* Thick border */
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
     -fx-border-radius: 15;                         /* Match border to background */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
     -fx-text-fill: white;                          /* White text */
     -fx-font-family: "Segoe UI", Helvetica, Arial; /* Clean font */
     -fx-font-size: 18px;
@@ -52,7 +59,7 @@
 /* This is the "Hover Brightness" and Glow part */
 .button:hover {
     -fx-background-color: rgba(0, 212, 255, 0.3);
-    -fx-border-color: #ffffff;                      /* Border turns white */
+    -fx-border-color: transparent;
     -fx-effect: dropshadow(gaussian, #0000ff, 20, 0.5, 0, 0); /* Glow shadow */
 }
 
@@ -76,4 +83,16 @@
 
 .stack-pane {
     -fx-background-color: transparent !important;
+}
+
+.button:focused,
+.button:default,
+.button:cancel,
+.menu-button:focused,
+.menu-button:default,
+.menu-button:cancel {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
 }

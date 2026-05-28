@@ -284,7 +284,7 @@ public class AnimationManager {
         // 6. Interactive Flip State Machine
         final boolean[] isRevealed = {false};
 
-        cardVisual.setOnMouseClicked(e -> {
+        Runnable advancePopup = () -> {
             if (!isRevealed[0]) {
                 // --- FIRST CLICK: REVEAL ---
                 isRevealed[0] = true;
@@ -317,9 +317,16 @@ public class AnimationManager {
                 });
                 popOut.play();
             }
+        };
+
+        cardVisual.setOnMouseClicked(e -> {
+            e.consume();
+            advancePopup.run();
         });
 
-        // Block clicks on the background overlay so they *must* click the card
-        overlay.setOnMouseClicked(e -> e.consume());
+        overlay.setOnMouseClicked(e -> {
+            e.consume();
+            advancePopup.run();
+        });
     }
 }
