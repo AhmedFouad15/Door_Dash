@@ -1,7 +1,21 @@
-### IntelliJ IDEA ###
+### Build & Compiled Artifacts ###
+target/
+build/
 out/
 !src/main/**/out/
 !src/test/**/out/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+### IntelliJ IDEA ###
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+*.iws
 .kotlin
 
 ### Eclipse ###
@@ -26,5 +40,7 @@ bin/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
+### OS ###
 .DS_Store
+Thumbs.db
+Desktop.ini

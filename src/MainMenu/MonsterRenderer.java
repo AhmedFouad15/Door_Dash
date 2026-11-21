@@ -25,7 +25,7 @@ public class MonsterRenderer {
     private static final Image HENRY_IMAGE = loadImage("/MainMenu/assets/images/Henry.png");
     private static final Image ROZ_IMAGE = loadImage("/MainMenu/assets/images/roz.png");
     private static final Image FUNGUS_IMAGE = loadImage("/MainMenu/assets/images/fungus.png");
-    private static final Image YETI_IMAGE = loadImage("/MainMenu/assets/images/yeti.png");
+    private static final Image YETI_IMAGE = loadImage("/MainMenu/assets/images/Yeti.png");
 
     public static StackPane createMonsterVisual(Monster monster, boolean isActiveTurn) {
         StackPane monsterNode = new StackPane();

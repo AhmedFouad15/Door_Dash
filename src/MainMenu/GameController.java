@@ -1492,7 +1492,7 @@ public class GameController {
         if ("Henry J. Waternoose".equals(name)) return "/MainMenu/assets/images/Henry.png";
         if ("Roz".equals(name)) return "/MainMenu/assets/images/roz.png";
         if ("Fungus".equals(name)) return "/MainMenu/assets/images/fungus.png";
-        if ("Yeti".equals(name)) return "/MainMenu/assets/images/yeti.png";
+        if ("Yeti".equals(name)) return "/MainMenu/assets/images/Yeti.png";
         return monster.getOriginalRole() == Role.SCARER ? "/MainMenu/assets/images/scarer_token.png" : "/MainMenu/assets/images/laugher_token.png";
     }
 

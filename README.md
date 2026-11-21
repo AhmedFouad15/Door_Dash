@@ -9,10 +9,29 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 25" />
-  <img src="https://img.shields.io/badge/JavaFX-26-4285F4?style=for-the-badge&logo=java&logoColor=white" alt="JavaFX 26" />
-  <img src="https://img.shields.io/badge/Genre-Strategy%20Board%20Game-8A2BE2?style=for-the-badge" alt="Strategy Board Game" />
+  <a href="https://github.com/AhmedFouad15/Door_Dash/actions/workflows/ci.yml">
+    <img src="https://github.com/AhmedFouad15/Door_Dash/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
+  </a>
+  <img src="https://img.shields.io/badge/Java-25-ED8B00?style=flat-square&logo=openjdk&logoColor=white" alt="Java 25" />
+  <img src="https://img.shields.io/badge/JavaFX-26.0.1-4285F4?style=flat-square&logo=java&logoColor=white" alt="JavaFX 26.0.1" />
+  <img src="https://img.shields.io/badge/Build-Maven-C71A36?style=flat-square&logo=apachemaven&logoColor=white" alt="Maven" />
+  <img src="https://img.shields.io/badge/Genre-Strategy%20Board%20Game-8A2BE2?style=flat-square" alt="Strategy Board Game" />
 </p>
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Game Rules & Mechanics](#game-rules--mechanics)
+- [Monster Archetypes & Roster](#monster-archetypes--roster)
+- [Mystery Card Deck](#mystery-card-deck)
+- [Controls & Keyboard Shortcuts](#controls--keyboard-shortcuts)
+- [Architecture & Project Structure](#architecture--project-structure)
+- [Getting Started](#getting-started)
+- [Customizing Game Data](#customizing-game-data)
+- [Contributing & Contributors](#contributing--contributors)
 
 ---
 
@@ -130,43 +149,57 @@ The deck contains **25 cards** expanded by rarity weight:
 
 ---
 
-## Project Structure
+## Architecture & Project Structure
+
+```mermaid
+flowchart LR
+    UI["MainMenu (JavaFX GUI)<br/>MainApp • Controllers • Renderers • Managers"] --> Engine["game.engine<br/>Game • Board • Monsters • Cells • Cards"]
+    Engine --> Loader["DataLoader"]
+    Loader --> CSV["Root Data CSVs<br/>monsters.csv • cells.csv • cards.csv"]
+```
 
 ```text
 Door_Dash/
+├── .github/
+│   ├── ISSUE_TEMPLATE/                   # Bug report & feature request templates
+│   └── workflows/ci.yml                  # GitHub Actions Maven build & test workflow
+├── pom.xml                               # Maven build, JavaFX 26 & JUnit 5 configuration
 ├── cards.csv                             # Card definitions, rarity weights, and parameters
 ├── cells.csv                             # 50 Door cells + 5 Conveyor Belts + 5 Contamination Socks
 ├── monsters.csv                          # Playable & stationed monster definitions
+├── CONTRIBUTING.md                       # Contribution & developer guidelines
 ├── FInally game.iml                      # IntelliJ IDEA module definition
-├── Names&Tut&ID.txt                      # Team roster
-└── src/
-    ├── game/engine/                      # Core game simulation & domain model
-    │   ├── Board.java                    # 10x10 board initialization, movement, card deck
-    │   ├── Constants.java                # Board dimensions, special cell indices, balance constants
-    │   ├── Game.java                     # Turn lifecycle, power-ups, win condition
-    │   ├── Role.java                     # SCARER / LAUGHER enum
-    │   ├── cards/                        # Card & 5 concrete card implementations
-    │   ├── cells/                        # Cell, DoorCell, CardCell, MonsterCell, TransportCell, ...
-    │   ├── dataloader/DataLoader.java    # CSV parsers for cards, cells, and monsters
-    │   ├── exceptions/                   # GameActionException hierarchy & InvalidCSVFormat
-    │   ├── interfaces/CanisterModifier.java
-    │   └── monsters/                     # Monster base class, Dasher, Dynamo, MultiTasker, Schemer
-    └── MainMenu/                         # JavaFX GUI, FXML views, animations, audio & assets
-        ├── MainApp.java                  # JavaFX Application entry point
-        ├── MainMenu.fxml / MainMenuController.java
-        ├── Instructions.fxml / InstructionsController.java
-        ├── GameScreen.fxml / GameController.java
-        ├── GameSetupWindow.java          # 1P/2P mode, player names, rules & role picker overlay
-        ├── WinWindow.java                # Victory / Game Over modal
-        ├── BoardRenderer.java            # Snake-grid board rendering & step/glide transitions
-        ├── CellFactory.java              # Styled cell tiles, icons, hover glows & animations
-        ├── MonsterRenderer.java          # Monster tokens, type badges & status overlays
-        ├── AnimationManager.java         # Dice animation, card flip popup, camera & shake effects
-        ├── NotificationManager.java      # Floating combat/energy text notifications
-        ├── SceneManager.java             # Smooth fade transitions between FXML scenes
-        ├── SoundManager.java             # Sound effects & voice/event audio clips
-        ├── menu.css                      # JavaFX CSS theme
-        └── assets/                       # Audio (.mp3/.wav/.m4a), images (.png/.jpg/.webp), video (.mp4)
+├── Names&Tut&ID.txt                      # Course team roster
+├── src/
+│   ├── game/engine/                      # Pure-Java game simulation & domain model
+│   │   ├── Board.java                    # 10x10 board initialization, movement, card deck
+│   │   ├── Constants.java                # Board dimensions, special cell indices, balance constants
+│   │   ├── Game.java                     # Turn lifecycle, power-ups, win condition
+│   │   ├── Role.java                     # SCARER / LAUGHER enum
+│   │   ├── cards/                        # Card & 5 concrete card implementations
+│   │   ├── cells/                        # Cell, DoorCell, CardCell, MonsterCell, TransportCell, ...
+│   │   ├── dataloader/DataLoader.java    # CSV parsers for cards, cells, and monsters
+│   │   ├── exceptions/                   # GameActionException hierarchy & InvalidCSVFormat
+│   │   ├── interfaces/CanisterModifier.java
+│   │   └── monsters/                     # Monster base class, Dasher, Dynamo, MultiTasker, Schemer
+│   └── MainMenu/                         # JavaFX GUI, FXML views, animations, audio & assets
+│       ├── MainApp.java                  # JavaFX Application entry point
+│       ├── MainMenu.fxml / MainMenuController.java
+│       ├── Instructions.fxml / InstructionsController.java
+│       ├── GameScreen.fxml / GameController.java
+│       ├── GameSetupWindow.java          # 1P/2P mode, player names, rules & role picker overlay
+│       ├── WinWindow.java                # Victory / Game Over modal
+│       ├── BoardRenderer.java            # Snake-grid board rendering & step/glide transitions
+│       ├── CellFactory.java              # Styled cell tiles, icons, hover glows & animations
+│       ├── MonsterRenderer.java          # Monster tokens, type badges & status overlays
+│       ├── AnimationManager.java         # Dice animation, card flip popup, camera & shake effects
+│       ├── NotificationManager.java      # Floating combat/energy text notifications
+│       ├── SceneManager.java             # Smooth fade transitions between FXML scenes
+│       ├── SoundManager.java             # Sound effects & voice/event audio clips
+│       ├── menu.css                      # JavaFX CSS theme
+│       └── assets/                       # Audio (.mp3/.wav/.m4a), images (.png/.jpg/.webp), video (.mp4)
+└── test/
+    └── game/engine/GameEngineTest.java   # JUnit 5 engine unit tests
 ```
 
 ---
@@ -175,50 +208,45 @@ Door_Dash/
 
 ### Prerequisites
 
-- **Java Development Kit (JDK) 25** (project is configured for JDK 25 / Liberica 25)
-- **JavaFX SDK 26** (or compatible JavaFX SDK containing `javafx.controls`, `javafx.fxml`, and `javafx.media`)
+- **Java Development Kit (JDK) 25**
+- **Maven 3.9+** (recommended, automatically resolves JavaFX 26.0.1 and JUnit 5), **or** a standalone **JavaFX 26 SDK** for IntelliJ / manual CLI runs
 
 > **Important:** `DataLoader` reads `cards.csv`, `cells.csv`, and `monsters.csv` using relative file paths, so the **working directory must be the repository root** (`Door_Dash/`) when launching the application.
 
-### Option 1: Run in IntelliJ IDEA
+### Option 1: Run with Maven (Recommended)
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/AhmedFouad15/Door_Dash.git
-   cd Door_Dash
-   ```
-2. Open the project folder in **IntelliJ IDEA**.
-3. Configure the **Project SDK** to **JDK 25** (`File -> Project Structure -> Project`).
-4. Point the project library **`lib`** (`File -> Project Structure -> Libraries`) to your local `<path-to-javafx-sdk>/lib` directory.
-5. Create or edit a Run Configuration for `MainMenu.MainApp`:
-   - **Main class:** `MainMenu.MainApp`
-   - **Working directory:** `<repo-root>/Door_Dash`
-   - **VM options:**
-     ```text
-     --module-path "<path-to-javafx-sdk>/lib" --add-modules javafx.controls,javafx.fxml,javafx.media
-     ```
-6. Run `MainMenu.MainApp`.
+```bash
+git clone https://github.com/AhmedFouad15/Door_Dash.git
+cd Door_Dash
 
-### Option 2: Build & Run from the Command Line
+# Launch the game
+mvn javafx:run
+
+# Run the engine test suite
+mvn test
+```
+
+### Option 2: Run in IntelliJ IDEA
+
+1. Clone the repository and open `Door_Dash/` in **IntelliJ IDEA**.
+2. Configure the **Project SDK** to **JDK 25** (`File -> Project Structure -> Project`).
+3. Either import `pom.xml` as a Maven project (recommended), or point the `lib` library (`File -> Project Structure -> Libraries`) to your local `<path-to-javafx-sdk>/lib` folder.
+4. Run `MainMenu.MainApp` with working directory set to the repository root (`Door_Dash/`).
+
+### Option 3: Manual `javac` & `java` CLI (Without Maven)
 
 #### Windows (PowerShell)
 
 ```powershell
-# 1. Set path to your JavaFX SDK lib folder
 $JAVAFX_LIB = "C:\path\to\javafx-sdk-26.0.1\lib"
-
-# 2. Clean and prepare output directory
 New-Item -ItemType Directory -Force -Path out | Out-Null
 
-# 3. Compile all Java sources
 $sources = Get-ChildItem -Path src -Recurse -Filter *.java | ForEach-Object { $_.FullName }
 javac --module-path $JAVAFX_LIB --add-modules javafx.controls,javafx.fxml,javafx.media -d out $sources
 
-# 4. Copy FXML, CSS, and media assets to out/MainMenu
 Copy-Item -Path src\MainMenu\*.fxml, src\MainMenu\*.css -Destination out\MainMenu\ -Force
 Copy-Item -Path src\MainMenu\assets -Destination out\MainMenu\assets -Recurse -Force
 
-# 5. Launch from the repository root (so *.csv files resolve)
 java --module-path $JAVAFX_LIB --add-modules javafx.controls,javafx.fxml,javafx.media -cp out MainMenu.MainApp
 ```
 
@@ -249,9 +277,15 @@ You can tune game balance or add custom content directly in the root CSV files w
 
 ---
 
-## Contributors
+## Contributing & Contributors
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on local setup, architecture boundaries, and running tests.
+
+### Authors
 
 - **Ahmed Fouad Eid El-Dmrdash** ([@AhmedFouad15](https://github.com/AhmedFouad15))
 - **Mariam Yasser Abd Al Salam**
 - **Maria Guirguis Samir**
 - **Mina Salama Fayez Elisa**
+
+> **Disclaimer:** *DoorDasH* is an educational student project inspired by *Monsters, Inc.* Characters, names, and themed media assets are used strictly for non-commercial learning and portfolio purposes.

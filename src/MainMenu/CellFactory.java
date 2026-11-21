@@ -30,7 +30,7 @@ public class CellFactory {
     private static final Image HENRY_IMAGE   = loadImage("/MainMenu/assets/images/Henry.png");
     private static final Image ROZ_IMAGE     = loadImage("/MainMenu/assets/images/roz.png");
     private static final Image FUNGUS_IMAGE  = loadImage("/MainMenu/assets/images/fungus.png");
-    private static final Image YETI_IMAGE    = loadImage("/MainMenu/assets/images/yeti.png");
+    private static final Image YETI_IMAGE    = loadImage("/MainMenu/assets/images/Yeti.png");
 
     private static final Image SULLEY_IMAGE = loadImage("/MainMenu/assets/images/scarer_token.png");
     private static final Image MIKE_IMAGE = loadImage("/MainMenu/assets/images/laugher_token.png");
